@@ -1,0 +1,4 @@
+-- Du an su dung MongoDB Atlas, khong can MySQL.
+-- Cau hinh trong backend/.env:
+-- MONGODB_URI=mongodb+srv://quangphu:<db_password>@cluster0.6ln3p.mongodb.net/?appName=Cluster0
+-- MONGODB_DB_NAME=kiemtradauvao

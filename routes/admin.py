@@ -1,8 +1,8 @@
-from flask import Blueprint, jsonify, send_file
+from flask import Blueprint, jsonify, send_file, current_app
 from flask_jwt_extended import jwt_required, get_jwt
 from database import col, parse_oid, oid_str
 from models import user_to_dict, test_to_dict, test_for_export
-from services.export import export_tests_excel, export_tests_pdf
+from services.export import export_tests_excel, export_tests_pdf, _public_detail_url
 
 admin_bp = Blueprint("admin", __name__, url_prefix="/api/admin")
 
@@ -114,8 +114,13 @@ def delete_test(test_id):
 def export_excel():
     if not admin_required():
         return jsonify({"message": "Không có quyền truy cập"}), 403
-    tests = [test_for_export(t) for t in col("tests").find().sort("submitted_at", -1)]
-    output = export_tests_excel(tests)
+    tests = []
+    frontend_url = current_app.config.get("FRONTEND_URL")
+    for t in col("tests").find().sort("submitted_at", -1):
+        row = test_for_export(t)
+        row["detail_url"] = _public_detail_url(row["id"], frontend_url)
+        tests.append(row)
+    output = export_tests_excel(tests, frontend_url)
     return send_file(
         output,
         mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",

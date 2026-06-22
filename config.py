@@ -14,6 +14,7 @@ class Config:
         "mongodb+srv://quangphu:<db_password>@cluster0.6ln3p.mongodb.net/?appName=Cluster0",
     )
     MONGODB_DB_NAME = os.getenv("MONGODB_DB_NAME", "kiemtradauvao")
+    FRONTEND_URL = os.getenv("FRONTEND_URL", "https://kiemtradauvao.vercel.app").rstrip("/")
     UPLOAD_FOLDER = os.path.join(os.path.dirname(__file__), "uploads")
     MAX_CONTENT_LENGTH = 5 * 1024 * 1024
     ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg", "gif", "webp"}

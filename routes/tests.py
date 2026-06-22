@@ -96,6 +96,15 @@ def get_result(test_id):
     return jsonify(test_to_dict(doc))
 
 
+@tests_bp.route("/result/<test_id>/public", methods=["GET"])
+def get_result_public(test_id):
+    """Chi tiết bài làm công khai — phụ huynh xem qua link (không cần đăng nhập)."""
+    doc = col("tests").find_one({"_id": parse_oid(test_id)})
+    if not doc:
+        return jsonify({"message": "Không tìm thấy bài làm"}), 404
+    return jsonify(test_to_dict(doc, include_details=True))
+
+
 @tests_bp.route("/achievements", methods=["GET"])
 def get_achievements():
     tests = (

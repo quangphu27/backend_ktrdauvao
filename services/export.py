@@ -1,6 +1,7 @@
 import io
 from datetime import datetime
 from openpyxl import Workbook
+from openpyxl.styles import Font
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import landscape, A4
 from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
@@ -8,16 +9,24 @@ from reportlab.lib.units import cm
 from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
 
 
-def export_tests_excel(tests):
+def _public_detail_url(test_id, frontend_url):
+    base = (frontend_url or "https://kiemtradauvao.vercel.app").rstrip("/")
+    return f"{base}/bai-lam/{test_id}"
+
+
+def export_tests_excel(tests, frontend_url=None):
     wb = Workbook()
     ws = wb.active
     ws.title = "Ket qua kiem tra"
     headers = [
         "ID", "Học sinh", "Lớp", "Số điện thoại", "Khóa học", "Điểm", "Lộ trình",
-        "Nhận xét", "Thời gian (giây)", "Ngày nộp",
+        "Nhận xét", "Thời gian (giây)", "Ngày nộp", "Chi tiết bài làm",
     ]
     ws.append(headers)
-    for t in tests:
+    link_font = Font(color="0563C1", underline="single")
+    detail_col = len(headers)
+
+    for row_idx, t in enumerate(tests, start=2):
         submitted = t.get("submitted_at")
         ws.append([
             t.get("id"),
@@ -30,7 +39,14 @@ def export_tests_excel(tests):
             t.get("comment"),
             t.get("duration_seconds"),
             submitted.strftime("%d/%m/%Y %H:%M") if submitted else "",
+            "",
         ])
+        url = t.get("detail_url") or _public_detail_url(t.get("id"), frontend_url)
+        cell = ws.cell(row=row_idx, column=detail_col, value="Xem chi tiết")
+        cell.hyperlink = url
+        cell.font = link_font
+
+    ws.column_dimensions["K"].width = 42
     output = io.BytesIO()
     wb.save(output)
     output.seek(0)

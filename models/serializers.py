@@ -44,12 +44,13 @@ def course_to_dict(doc):
 def question_to_dict(doc, include_correct=False):
     answers = []
     for a in doc.get("answers", []):
+        aid = a.get("id") or (str(a["_id"]) if a.get("_id") else None)
         item = {
-            "id": a.get("id") or oid_str(a.get("_id")),
+            "id": aid,
             "answer_text": a.get("answer_text"),
         }
         if include_correct:
-            item["is_correct"] = a.get("is_correct", False)
+            item["is_correct"] = bool(a.get("is_correct"))
         answers.append(item)
 
     return {
@@ -126,24 +127,41 @@ def test_for_export(doc):
 
 def build_test_details(questions, answers_map):
     details = []
+    answers_map = _normalize_answers_map(answers_map)
     for q in questions:
-        qid = q["id"]
-        answer_id = answers_map.get(str(qid)) or answers_map.get(qid)
-        selected = None
-        if answer_id:
-            for a in q["answers"]:
-                if str(a["id"]) == str(answer_id):
-                    selected = a
-                    break
+        qid = str(q["id"])
+        answer_id = answers_map.get(qid)
+        selected = _find_answer(q, answer_id)
         correct = next((a for a in q["answers"] if a.get("is_correct")), None)
         details.append({
             "question_id": qid,
             "question_content": q.get("content"),
             "answer_id": str(answer_id) if answer_id else None,
             "answer_text": selected.get("answer_text") if selected else None,
-            "is_correct": selected.get("is_correct", False) if selected else False,
+            "is_correct": bool(selected and selected.get("is_correct")),
             "correct_answer": correct.get("answer_text") if correct else None,
             "category": q.get("category"),
             "level": q.get("level"),
         })
     return details
+
+
+def _normalize_answers_map(answers_map):
+    if not answers_map:
+        return {}
+    return {
+        str(qid): str(aid)
+        for qid, aid in answers_map.items()
+        if aid is not None and aid != ""
+    }
+
+
+def _find_answer(question, answer_id):
+    if not answer_id:
+        return None
+    target = str(answer_id)
+    for answer in question.get("answers", []):
+        aid = answer.get("id") or answer.get("_id")
+        if aid is not None and str(aid) == target:
+            return answer
+    return None

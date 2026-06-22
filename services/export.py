@@ -13,8 +13,8 @@ def export_tests_excel(tests):
     ws = wb.active
     ws.title = "Ket qua kiem tra"
     headers = [
-        "ID", "Hoc sinh", "Lop", "So dien thoai", "Khoa hoc", "Diem", "Lo trinh",
-        "Nhan xet", "Thoi gian (s)", "Ngay nop",
+        "ID", "Học sinh", "Lớp", "Số điện thoại", "Khóa học", "Điểm", "Lộ trình",
+        "Nhận xét", "Thời gian (giây)", "Ngày nộp",
     ]
     ws.append(headers)
     for t in tests:

@@ -1,4 +1,5 @@
 from datetime import datetime
+import random
 from bson import ObjectId
 from database import col, oid_str
 from models import hash_password
@@ -71,19 +72,21 @@ PYTHON_QUESTIONS = [
 
 
 def _build_answers(answer_texts, correct_index):
-    answers = []
-    for i, text in enumerate(answer_texts):
-        answers.append({
-            "id": str(ObjectId()),
-            "answer_text": text,
-            "is_correct": i == correct_index,
-        })
-    return answers
+    items = [
+        {"answer_text": text, "is_correct": i == correct_index}
+        for i, text in enumerate(answer_texts)
+    ]
+    random.shuffle(items)
+    for item in items:
+        item["id"] = str(ObjectId())
+    return items
 
 
 def _add_questions(course_id, questions_data):
     docs = []
     for i, q in enumerate(questions_data):
+        texts = q["answers"]
+        correct_idx = q.get("correct", 0)
         docs.append({
             "course_id": course_id,
             "content": q["content"],
@@ -91,7 +94,7 @@ def _add_questions(course_id, questions_data):
             "level": q["level"],
             "category": q["category"],
             "order_num": i + 1,
-            "answers": _build_answers(q["answers"], q["correct"]),
+            "answers": _build_answers(texts, correct_idx),
         })
     if docs:
         col("questions").insert_many(docs)

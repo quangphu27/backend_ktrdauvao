@@ -98,6 +98,17 @@ def get_test_detail(test_id):
     return jsonify(test_to_dict(doc, include_details=True))
 
 
+@admin_bp.route("/tests/<test_id>", methods=["DELETE"])
+@jwt_required()
+def delete_test(test_id):
+    if not admin_required():
+        return jsonify({"message": "Không có quyền truy cập"}), 403
+    result = col("tests").delete_one({"_id": parse_oid(test_id)})
+    if result.deleted_count == 0:
+        return jsonify({"message": "Không tìm thấy bài test"}), 404
+    return jsonify({"message": "Đã xóa bài làm"})
+
+
 @admin_bp.route("/export/excel", methods=["GET"])
 @jwt_required()
 def export_excel():

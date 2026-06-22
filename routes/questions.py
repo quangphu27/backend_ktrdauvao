@@ -1,4 +1,5 @@
 import os
+import random
 import uuid
 from bson import ObjectId
 from flask import Blueprint, request, jsonify, current_app
@@ -19,12 +20,17 @@ def allowed_file(filename):
 
 
 def _build_answers(answer_list):
+    items = [
+        {"answer_text": ans["answer_text"], "is_correct": ans.get("is_correct", False)}
+        for ans in answer_list
+    ]
+    random.shuffle(items)
     answers = []
-    for ans in answer_list:
+    for item in items:
         answers.append({
             "id": str(ObjectId()),
-            "answer_text": ans["answer_text"],
-            "is_correct": ans.get("is_correct", False),
+            "answer_text": item["answer_text"],
+            "is_correct": item["is_correct"],
         })
     return answers
 

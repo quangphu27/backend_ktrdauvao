@@ -33,10 +33,33 @@ def get_recommendation(course_slug, score):
     return "Python Kids Intermediate"
 
 
+def _normalize_answers_map(answers_map):
+    """Chuẩn hóa map câu trả lời: key/value đều là string."""
+    if not answers_map:
+        return {}
+    normalized = {}
+    for qid, aid in answers_map.items():
+        if aid is not None and aid != "":
+            normalized[str(qid)] = str(aid)
+    return normalized
+
+
+def _find_answer(question, answer_id):
+    if not answer_id:
+        return None
+    target = str(answer_id)
+    for answer in question.get("answers", []):
+        aid = answer.get("id") or answer.get("_id")
+        if aid is not None and str(aid) == target:
+            return answer
+    return None
+
+
 def calculate_scores(questions, answers_map):
     total = len(questions)
     correct_count = 0
     category_stats = {}
+    answers_map = _normalize_answers_map(answers_map)
 
     for q in questions:
         radar_cat = CATEGORY_MAP.get(q.get("category"), "Logic")
@@ -44,13 +67,13 @@ def calculate_scores(questions, answers_map):
             category_stats[radar_cat] = {"correct": 0, "total": 0}
         category_stats[radar_cat]["total"] += 1
 
-        qid = q["id"]
-        selected_id = answers_map.get(str(qid)) or answers_map.get(qid)
-        if selected_id:
-            correct_answer = next((a for a in q.get("answers", []) if a.get("is_correct")), None)
-            if correct_answer and str(selected_id) == str(correct_answer["id"]):
-                correct_count += 1
-                category_stats[radar_cat]["correct"] += 1
+        qid = str(q["id"])
+        selected_id = answers_map.get(qid)
+        selected = _find_answer(q, selected_id)
+
+        if selected and selected.get("is_correct") is True:
+            correct_count += 1
+            category_stats[radar_cat]["correct"] += 1
 
     score = round((correct_count / total) * 100, 1) if total > 0 else 0
 

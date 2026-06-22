@@ -8,9 +8,9 @@ from services.scoring import calculate_scores, get_comment, get_recommendation
 tests_bp = Blueprint("tests", __name__, url_prefix="/api/tests")
 
 
-def _get_questions_for_course(course_id):
+def _get_questions_for_course(course_id, include_correct=False):
     docs = col("questions").find({"course_id": str(course_id)}).sort("order_num", 1)
-    return [question_to_dict(q) for q in docs]
+    return [question_to_dict(q, include_correct=include_correct) for q in docs]
 
 
 @tests_bp.route("/start", methods=["POST"])
@@ -54,7 +54,7 @@ def submit_test():
     if not course:
         return jsonify({"message": "Không tìm thấy khóa học"}), 404
 
-    questions = _get_questions_for_course(course_id)
+    questions = _get_questions_for_course(course_id, include_correct=True)
     score, radar_scores = calculate_scores(questions, answers)
     comment = get_comment(score)
     recommendation = get_recommendation(course.get("slug"), score)

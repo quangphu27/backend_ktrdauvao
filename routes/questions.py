@@ -10,6 +10,15 @@ from models import question_to_dict
 questions_bp = Blueprint("questions", __name__, url_prefix="/api/questions")
 
 
+def _validate_unique_answers(answer_list):
+    texts = [a.get("answer_text", "").strip().lower() for a in answer_list]
+    if len(texts) != len(set(texts)):
+        return "Các đáp án không được trùng nhau"
+    if len(texts) < 2:
+        return "Cần ít nhất 2 đáp án"
+    return None
+
+
 def admin_required():
     claims = get_jwt()
     return claims.get("role") == "admin"
@@ -80,6 +89,9 @@ def create_question():
         return jsonify({"message": "Không có quyền truy cập"}), 403
 
     data = request.get_json()
+    err = _validate_unique_answers(data.get("answers", []))
+    if err:
+        return jsonify({"message": err}), 400
     doc = {
         "course_id": str(data["course_id"]),
         "content": data["content"],
@@ -114,6 +126,9 @@ def update_question(question_id):
         "course_id": str(data.get("course_id", doc.get("course_id"))),
     }
     if "answers" in data:
+        err = _validate_unique_answers(data["answers"])
+        if err:
+            return jsonify({"message": err}), 400
         update["answers"] = _build_answers(data["answers"])
 
     col("questions").update_one({"_id": doc["_id"]}, {"$set": update})

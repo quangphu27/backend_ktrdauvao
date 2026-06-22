@@ -8,7 +8,16 @@ def _normalize_answer_id(answer):
     return str(answer.get("id") or answer.get("_id") or "")
 
 
-def _build_shuffled_answers(answer_texts, correct_index):
+import random
+from bson import ObjectId
+
+from database import col
+from seed import _validate_answers, _validate_correct_index
+
+
+def _build_shuffled_answers(answer_texts, correct_index, content=""):
+    _validate_answers(answer_texts, content)
+    _validate_correct_index(answer_texts, correct_index, content)
     items = [
         {"answer_text": text, "is_correct": i == correct_index}
         for i, text in enumerate(answer_texts)
@@ -21,8 +30,12 @@ def _build_shuffled_answers(answer_texts, correct_index):
 
 def _extract_answer_texts_and_correct(answers):
     texts = [a.get("answer_text", "") for a in answers]
-    correct_idx = next((i for i, a in enumerate(answers) if a.get("is_correct")), 0)
-    return texts, correct_idx
+    correct_indices = [i for i, a in enumerate(answers) if a.get("is_correct")]
+    if len(correct_indices) == 1:
+        return texts, correct_indices[0]
+    if len(correct_indices) == 0:
+        return texts, 0
+    return texts, correct_indices[0]
 
 
 def fix_all_questions():
@@ -37,7 +50,8 @@ def fix_all_questions():
         if len(texts) < 2:
             continue
 
-        new_answers = _build_shuffled_answers(texts, correct_idx)
+        content = doc.get("content", "")
+        new_answers = _build_shuffled_answers(texts, correct_idx, content)
         col("questions").update_one(
             {"_id": doc["_id"]},
             {"$set": {"answers": new_answers}},

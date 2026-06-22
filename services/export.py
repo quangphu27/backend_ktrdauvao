@@ -29,6 +29,7 @@ def export_tests_excel(tests, frontend_url=None):
 
     for row_idx, t in enumerate(tests, start=2):
         submitted = t.get("submitted_at")
+        url = t.get("detail_url") or _public_detail_url(t.get("id"), frontend_url)
         ws.append([
             t.get("id"),
             t.get("student_name"),
@@ -40,16 +41,13 @@ def export_tests_excel(tests, frontend_url=None):
             t.get("comment"),
             t.get("duration_seconds"),
             submitted.strftime("%d/%m/%Y %H:%M") if submitted else "",
-            "",
+            url,
         ])
-        url = t.get("detail_url") or _public_detail_url(t.get("id"), frontend_url)
-        cell = ws.cell(row=row_idx, column=detail_col)
-        # Dùng công thức HYPERLINK để Excel / Google Sheets mở link khi bấm
-        safe_url = url.replace('"', '""')
-        cell.value = f'=HYPERLINK("{safe_url}","{safe_url}")'
+        cell = ws.cell(row=row_idx, column=detail_col, value=url)
+        cell.hyperlink = url
         cell.font = link_font
 
-    ws.column_dimensions[get_column_letter(detail_col)].width = 52
+    ws.column_dimensions[get_column_letter(detail_col)].width = 58
     output = io.BytesIO()
     wb.save(output)
     output.seek(0)

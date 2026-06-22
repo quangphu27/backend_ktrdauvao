@@ -2,6 +2,7 @@ import io
 from datetime import datetime
 from openpyxl import Workbook
 from openpyxl.styles import Font
+from openpyxl.utils import get_column_letter
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import landscape, A4
 from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
@@ -42,11 +43,13 @@ def export_tests_excel(tests, frontend_url=None):
             "",
         ])
         url = t.get("detail_url") or _public_detail_url(t.get("id"), frontend_url)
-        cell = ws.cell(row=row_idx, column=detail_col, value="Xem chi tiết")
-        cell.hyperlink = url
+        cell = ws.cell(row=row_idx, column=detail_col)
+        # Dùng công thức HYPERLINK để Excel / Google Sheets mở link khi bấm
+        safe_url = url.replace('"', '""')
+        cell.value = f'=HYPERLINK("{safe_url}","{safe_url}")'
         cell.font = link_font
 
-    ws.column_dimensions["K"].width = 42
+    ws.column_dimensions[get_column_letter(detail_col)].width = 52
     output = io.BytesIO()
     wb.save(output)
     output.seek(0)

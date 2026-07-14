@@ -57,7 +57,9 @@ def submit_test():
     questions = _get_questions_for_course(course_id, include_correct=True)
     score, radar_scores = calculate_scores(questions, answers)
     comment = get_comment(score)
-    recommendation = get_recommendation(course.get("slug"), score)
+    recommendation = get_recommendation(
+        course.get("slug"), score, guest_phone, guest_name
+    )
 
     user_id = None
     try:

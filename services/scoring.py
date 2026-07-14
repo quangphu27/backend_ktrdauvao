@@ -19,18 +19,9 @@ def get_comment(score):
     return "Con có tố chất học lập trình rất tốt."
 
 
-def get_recommendation(course_slug, score):
-    if course_slug == "scratch":
-        if score <= 40:
-            return "Scratch Junior"
-        if score <= 70:
-            return "Scratch cơ bản"
-        return "Scratch nâng cao"
-    if score <= 40:
-        return "Tin học cơ bản"
-    if score <= 70:
-        return "Python Kids Beginner"
-    return "Python Kids Intermediate"
+def get_recommendation(course_slug, score, phone=None, student_name=None):
+    from services.class_assignment import get_recommendation as _class_rec
+    return _class_rec(course_slug, score, phone, student_name)
 
 
 def _normalize_answers_map(answers_map):

@@ -16,5 +16,14 @@ class Config:
     MONGODB_DB_NAME = os.getenv("MONGODB_DB_NAME", "kiemtradauvao")
     FRONTEND_URL = os.getenv("FRONTEND_URL", "https://kiemtradauvao.vercel.app").rstrip("/")
     UPLOAD_FOLDER = os.path.join(os.path.dirname(__file__), "uploads")
-    MAX_CONTENT_LENGTH = 5 * 1024 * 1024
+    MAX_CONTENT_LENGTH = 25 * 1024 * 1024
     ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg", "gif", "webp"}
+    ALLOWED_SUBMISSION_EXTENSIONS = {
+        "sb3", "sb2", "png", "jpg", "jpeg", "gif", "webp", "pdf", "zip", "txt", "doc", "docx",
+    }
+    CLOUDINARY_CLOUD_NAME = os.getenv("CLOUDINARY_CLOUD_NAME", "dnqrhfnas")
+    CLOUDINARY_API_KEY = os.getenv("CLOUDINARY_API_KEY") or os.getenv("API-KEY") or os.getenv("API_KEY")
+    CLOUDINARY_API_SECRET = (
+        os.getenv("CLOUDINARY_API_SECRET") or os.getenv("API-SECRET") or os.getenv("API_SECRET")
+    )
+    CLOUDINARY_URL = os.getenv("CLOUDINARY_URL")

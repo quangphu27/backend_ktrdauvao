@@ -5,6 +5,7 @@ from .tests import tests_bp
 from .admin import admin_bp
 from .submissions import submissions_bp
 from .quizzes import quizzes_bp
+from .classrooms import classrooms_bp
 
 __all__ = [
     "auth_bp",
@@ -14,4 +15,5 @@ __all__ = [
     "admin_bp",
     "submissions_bp",
     "quizzes_bp",
+    "classrooms_bp",
 ]

@@ -77,3 +77,26 @@ def destroy_file(public_id, resource_type="raw"):
         return
     _configure()
     cloudinary.uploader.destroy(public_id, resource_type=resource_type)
+
+
+def upload_image_file(file_storage, folder="quiz_images"):
+    """Upload ảnh câu hỏi lên Cloudinary."""
+    _configure()
+    if not current_app.config.get("CLOUDINARY_API_KEY") and not current_app.config.get("CLOUDINARY_URL"):
+        raise RuntimeError("Thiếu cấu hình Cloudinary trong .env")
+
+    stamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
+    original = file_storage.filename or "image"
+    base = _safe_folder_segment(original.rsplit(".", 1)[0], "img")
+    result = cloudinary.uploader.upload(
+        file_storage,
+        folder=folder,
+        public_id=f"{stamp}_{base}",
+        resource_type="image",
+        overwrite=False,
+    )
+    return {
+        "url": result.get("secure_url") or result.get("url"),
+        "public_id": result.get("public_id"),
+    }
+

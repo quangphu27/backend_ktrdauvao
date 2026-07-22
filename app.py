@@ -13,6 +13,7 @@ from routes import (
     submissions_bp,
     quizzes_bp,
     classrooms_bp,
+    games_bp,
 )
 
 
@@ -39,6 +40,7 @@ def create_app():
     app.register_blueprint(submissions_bp)
     app.register_blueprint(quizzes_bp)
     app.register_blueprint(classrooms_bp)
+    app.register_blueprint(games_bp)
 
     @app.route("/uploads/<path:filename>")
     def uploaded_file(filename):

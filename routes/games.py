@@ -99,7 +99,9 @@ def create_crossword():
         "slug": _unique_slug("crossword_games"),
         "players": [],
         "solved_rows": [],
+        "failed_rows": [],
         "vertical_solved": False,
+        "vertical_failed": False,
         "wrong_options": {},
         "created_at": now,
         "updated_at": now,
@@ -174,7 +176,9 @@ def reset_crossword(game_id):
         {"_id": doc["_id"]},
         {"$set": {
             "solved_rows": [],
+            "failed_rows": [],
             "vertical_solved": False,
+            "vertical_failed": False,
             "wrong_options": {},
             "players": players,
             "updated_at": datetime.utcnow(),
@@ -251,15 +255,26 @@ def adjust_score(game_type, game_id, player_id):
     for p in players:
         if str(p.get("id")) == str(player_id):
             if absolute is not None:
-                p["score"] = max(0, int(absolute))
+                p["score"] = int(absolute)
             else:
-                p["score"] = max(0, int(p.get("score") or 0) + delta)
+                p["score"] = int(p.get("score") or 0) + delta
             found = True
             break
     if not found:
         return jsonify({"message": "Không tìm thấy người chơi"}), 404
     col(collection).update_one({"_id": doc["_id"]}, {"$set": {"players": players}})
     return jsonify({"players": players})
+
+
+def _winners(players):
+    if not players:
+        return []
+    best = max(int(p.get("score") or 0) for p in players)
+    return [
+        {"id": p.get("id"), "name": p.get("name"), "score": int(p.get("score") or 0)}
+        for p in players
+        if int(p.get("score") or 0) == best
+    ]
 
 
 # ── Crossword play (public by slug, admin can also use) ─
@@ -277,11 +292,19 @@ def get_crossword_play(slug):
         if row:
             revealed[rid] = row.get("answer")
     data["revealed_rows"] = revealed
+    data["failed_rows"] = doc.get("failed_rows") or []
     data["vertical_solved"] = bool(doc.get("vertical_solved"))
+    data["vertical_failed"] = bool(doc.get("vertical_failed"))
     if doc.get("vertical_solved"):
         data["vertical_answer"] = doc.get("vertical_answer")
     data["wrong_options"] = doc.get("wrong_options") or {}
     data["players"] = doc.get("players") or []
+    if doc.get("vertical_solved") or doc.get("vertical_failed"):
+        data["winners"] = _winners(doc.get("players") or [])
+        data["game_finished"] = True
+    else:
+        data["winners"] = []
+        data["game_finished"] = False
     return jsonify(data)
 
 
@@ -299,23 +322,32 @@ def answer_crossword_row(slug):
         return jsonify({"message": "Không tìm thấy hàng"}), 404
     if row_id in (doc.get("solved_rows") or []):
         return jsonify({"message": "Hàng này đã mở rồi", "already_solved": True}), 400
+    if row_id in (doc.get("failed_rows") or []):
+        return jsonify({"message": "Hàng này đã trả lời sai rồi", "already_failed": True}), 400
 
     correct, _ = check_option_correct(row.get("question"), option_id)
     wrong_options = doc.get("wrong_options") or {}
-    row_wrong = list(wrong_options.get(row_id) or [])
 
     if not correct:
-        if option_id and option_id not in row_wrong:
-            row_wrong.append(str(option_id))
-            wrong_options[row_id] = row_wrong
-            col("crossword_games").update_one(
-                {"_id": doc["_id"]},
-                {"$set": {"wrong_options": wrong_options}},
-            )
+        failed = list(doc.get("failed_rows") or [])
+        if row_id not in failed:
+            failed.append(row_id)
+        if option_id:
+            wrong_options[row_id] = [str(option_id)]
+        col("crossword_games").update_one(
+            {"_id": doc["_id"]},
+            {"$set": {
+                "failed_rows": failed,
+                "wrong_options": wrong_options,
+                "updated_at": datetime.utcnow(),
+            }},
+        )
         return jsonify({
             "correct": False,
-            "wrong_options": row_wrong,
-            "message": "Chưa đúng rồi, thử đáp án khác nhé!",
+            "locked": True,
+            "failed_rows": failed,
+            "wrong_options": wrong_options.get(row_id) or [],
+            "message": "Sai rồi! Câu này không chọn lại được.",
         })
 
     solved = list(doc.get("solved_rows") or [])
@@ -352,29 +384,39 @@ def answer_crossword_vertical(slug):
         return jsonify({"message": "Không tìm thấy trò chơi"}), 404
     if doc.get("vertical_solved"):
         return jsonify({"message": "Ô chữ dọc đã mở rồi", "already_solved": True}), 400
+    if doc.get("vertical_failed"):
+        return jsonify({"message": "Ô chữ dọc đã trả lời sai rồi", "already_failed": True}), 400
     data = request.get_json() or {}
     option_id = data.get("option_id")
     player_id = data.get("player_id")
     correct, _ = check_option_correct(doc.get("vertical_question"), option_id)
     wrong_options = doc.get("wrong_options") or {}
-    v_wrong = list(wrong_options.get("__vertical__") or [])
+    players = doc.get("players") or []
 
     if not correct:
-        if option_id and str(option_id) not in v_wrong:
-            v_wrong.append(str(option_id))
-            wrong_options["__vertical__"] = v_wrong
-            col("crossword_games").update_one(
-                {"_id": doc["_id"]},
-                {"$set": {"wrong_options": wrong_options}},
-            )
+        if option_id:
+            wrong_options["__vertical__"] = [str(option_id)]
+        col("crossword_games").update_one(
+            {"_id": doc["_id"]},
+            {"$set": {
+                "vertical_failed": True,
+                "wrong_options": wrong_options,
+                "updated_at": datetime.utcnow(),
+            }},
+        )
+        winners = _winners(players)
         return jsonify({
             "correct": False,
-            "wrong_options": v_wrong,
-            "message": "Chưa đúng ô chữ bí mật!",
+            "locked": True,
+            "vertical_failed": True,
+            "wrong_options": wrong_options.get("__vertical__") or [],
+            "players": players,
+            "winners": winners,
+            "game_finished": True,
+            "message": "Sai ô chữ bí mật! Câu này không chọn lại được.",
         })
 
     points = int(doc.get("vertical_points") or 30)
-    players = doc.get("players") or []
     if player_id:
         p = _find_player(players, player_id)
         if p:
@@ -387,11 +429,14 @@ def answer_crossword_vertical(slug):
             "updated_at": datetime.utcnow(),
         }},
     )
+    winners = _winners(players)
     return jsonify({
         "correct": True,
         "answer": doc.get("vertical_answer"),
         "points": points,
         "players": players,
+        "winners": winners,
+        "game_finished": True,
         "message": f"Mở khóa ô chữ bí mật! +{points} điểm",
     })
 

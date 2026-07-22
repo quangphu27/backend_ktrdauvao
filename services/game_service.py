@@ -177,7 +177,9 @@ def crossword_to_dict(doc, include_answers=False):
         "vertical_question": vertical_question,
         "players": doc.get("players") or [],
         "solved_rows": doc.get("solved_rows") or [],
+        "failed_rows": doc.get("failed_rows") or [],
         "vertical_solved": bool(doc.get("vertical_solved")),
+        "vertical_failed": bool(doc.get("vertical_failed")),
         "created_at": created.isoformat() + "Z" if isinstance(created, datetime) else created,
         "play_path": f"/tro-choi/o-chu/{doc.get('slug')}",
     }

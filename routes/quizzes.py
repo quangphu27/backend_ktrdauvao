@@ -15,6 +15,7 @@ from services.quiz_service import (
     generate_quiz_slug,
     grade_attempt,
     quiz_to_dict,
+    recompute_attempt_score,
     sanitize_questions,
 )
 
@@ -83,6 +84,7 @@ def submit_quiz(slug):
         "earned": graded["earned"],
         "max_score": graded["max_score"],
         "score": graded["score"],
+        "pending_manual": graded.get("pending_manual") or 0,
         "duration_seconds": duration,
         "submitted_at": datetime.utcnow(),
     }
@@ -256,6 +258,59 @@ def admin_delete_attempt(attempt_id):
     if result.deleted_count == 0:
         return jsonify({"message": "Không tìm thấy bài làm"}), 404
     return jsonify({"message": "Đã xóa bài làm"})
+
+
+@quizzes_bp.route("/admin/attempts/<attempt_id>/grade-code", methods=["POST"])
+@jwt_required()
+def admin_grade_code(attempt_id):
+    """Chấm thủ công câu python_code: { question_id, points_awarded }."""
+    if not _admin_required():
+        return jsonify({"message": "Không có quyền truy cập"}), 403
+    doc = col("quiz_attempts").find_one({"_id": parse_oid(attempt_id)})
+    if not doc:
+        return jsonify({"message": "Không tìm thấy bài làm"}), 404
+    data = request.get_json() or {}
+    qid = str(data.get("question_id") or "")
+    try:
+        awarded = int(data.get("points_awarded"))
+    except (TypeError, ValueError):
+        return jsonify({"message": "Điểm không hợp lệ"}), 400
+
+    details = list(doc.get("details") or [])
+    found = False
+    for d in details:
+        if str(d.get("question_id")) != qid:
+            continue
+        if d.get("type") != "python_code":
+            return jsonify({"message": "Chỉ chấm được câu Python tự luận"}), 400
+        max_pts = int(d.get("points") or 0)
+        awarded = max(0, min(awarded, max_pts))
+        d["points_awarded"] = awarded
+        d["needs_manual_review"] = False
+        if awarded >= max_pts:
+            d["is_correct"] = True
+        elif awarded <= 0:
+            d["is_correct"] = False
+        else:
+            d["is_correct"] = None  # đúng một phần
+        found = True
+        break
+    if not found:
+        return jsonify({"message": "Không tìm thấy câu hỏi"}), 404
+
+    earned, max_score, score, pending = recompute_attempt_score(details)
+    col("quiz_attempts").update_one(
+        {"_id": doc["_id"]},
+        {"$set": {
+            "details": details,
+            "earned": earned,
+            "max_score": max_score,
+            "score": score,
+            "pending_manual": pending,
+        }},
+    )
+    doc = col("quiz_attempts").find_one({"_id": doc["_id"]})
+    return jsonify(attempt_to_dict(doc, include_details=True))
 
 
 @quizzes_bp.route("/admin/<quiz_id>/export", methods=["GET"])

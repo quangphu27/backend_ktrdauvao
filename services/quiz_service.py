@@ -23,7 +23,7 @@ def _norm_text(s):
 def sanitize_question(raw, index=0):
     """Chuẩn hóa 1 câu hỏi từ payload admin."""
     qtype = (raw.get("type") or "mcq").lower()
-    if qtype not in ("mcq", "text"):
+    if qtype not in ("mcq", "text", "python_code"):
         qtype = "mcq"
 
     q = {
@@ -54,7 +54,9 @@ def sanitize_question(raw, index=0):
             raise ValueError(f"Câu {index + 1}: cần chọn 1 đáp án đúng")
         q["options"] = options
         q["correct_answer"] = None
-    else:
+        q["starter_code"] = ""
+        q["allow_run"] = False
+    elif qtype == "text":
         correct = (raw.get("correct_answer") or "").strip()
         if not correct:
             raise ValueError(f"Câu {index + 1}: tự luận cần đáp án đúng để chấm")
@@ -66,6 +68,19 @@ def sanitize_question(raw, index=0):
         q["options"] = []
         q["correct_answer"] = correct
         q["answer_aliases"] = aliases
+        q["starter_code"] = ""
+        q["allow_run"] = False
+    else:
+        # python_code — tự luận viết code, chấm thủ công
+        starter = raw.get("starter_code")
+        if starter is None:
+            starter = "# Viết code Python của em ở đây\n"
+        q["options"] = []
+        q["correct_answer"] = (raw.get("correct_answer") or "").strip() or None
+        q["answer_aliases"] = []
+        q["starter_code"] = str(starter)
+        q["allow_run"] = bool(raw.get("allow_run", True))
+        q["hint"] = (raw.get("hint") or "").strip() or None
     return q
 
 
@@ -93,6 +108,10 @@ def question_for_student(q):
             {"id": o["id"], "text": o["text"]}
             for o in (q.get("options") or [])
         ]
+    elif item["type"] == "python_code":
+        item["starter_code"] = q.get("starter_code") or ""
+        item["allow_run"] = bool(q.get("allow_run", True))
+        item["hint"] = q.get("hint")
     return item
 
 
@@ -124,11 +143,12 @@ def quiz_to_dict(doc, include_answers=False):
 
 
 def grade_attempt(quiz, answers_map):
-    """Chấm bài. answers_map: {question_id: option_id | text}."""
+    """Chấm bài. answers_map: {question_id: option_id | text | code}."""
     answers_map = answers_map or {}
     details = []
     earned = 0
     max_score = 0
+    pending_manual = 0
 
     for q in quiz.get("questions") or []:
         points = int(q.get("points") or 1)
@@ -138,11 +158,37 @@ def grade_attempt(quiz, answers_map):
         if student_ans is None:
             student_ans = answers_map.get(q["id"])
 
+        qtype = q.get("type") or "mcq"
         is_correct = False
         chosen_text = ""
         correct_text = ""
+        needs_manual_review = False
+        points_awarded = 0
 
-        if q.get("type") == "text":
+        if qtype == "python_code":
+            chosen_text = "" if student_ans is None else str(student_ans)
+            answered = bool(chosen_text.strip())
+            needs_manual_review = True
+            is_correct = None  # chưa chấm
+            correct_text = q.get("correct_answer") or "(Giáo viên chấm thủ công)"
+            if answered:
+                pending_manual += 1
+            details.append({
+                "question_id": qid,
+                "type": qtype,
+                "content": q.get("content"),
+                "image_url": q.get("image_url"),
+                "points": points,
+                "points_awarded": 0,
+                "student_answer": chosen_text,
+                "correct_answer": correct_text,
+                "is_correct": is_correct,
+                "answered": answered,
+                "needs_manual_review": needs_manual_review,
+            })
+            continue
+
+        if qtype == "text":
             correct_text = q.get("correct_answer") or ""
             chosen_text = "" if student_ans is None else str(student_ans)
             accepted = [_norm_text(correct_text)] + [
@@ -161,17 +207,20 @@ def grade_attempt(quiz, answers_map):
 
         if is_correct:
             earned += points
+            points_awarded = points
 
         details.append({
             "question_id": qid,
-            "type": q.get("type"),
+            "type": qtype,
             "content": q.get("content"),
             "image_url": q.get("image_url"),
             "points": points,
+            "points_awarded": points_awarded,
             "student_answer": chosen_text,
             "correct_answer": correct_text,
             "is_correct": is_correct,
             "answered": bool(str(student_ans).strip()) if student_ans is not None else False,
+            "needs_manual_review": False,
         })
 
     score = round((earned / max_score) * 100, 1) if max_score else 0
@@ -180,7 +229,28 @@ def grade_attempt(quiz, answers_map):
         "max_score": max_score,
         "score": score,
         "details": details,
+        "pending_manual": pending_manual,
     }
+
+
+def recompute_attempt_score(details):
+    """Tính lại điểm sau khi giáo viên chấm code."""
+    earned = 0
+    max_score = 0
+    pending = 0
+    for d in details or []:
+        pts = int(d.get("points") or 0)
+        max_score += pts
+        if d.get("needs_manual_review") and d.get("is_correct") is None:
+            pending += 1 if d.get("answered") else 0
+            awarded = int(d.get("points_awarded") or 0)
+        else:
+            awarded = int(d.get("points_awarded") or 0)
+            if d.get("is_correct") is True and awarded == 0:
+                awarded = pts
+        earned += awarded
+    score = round((earned / max_score) * 100, 1) if max_score else 0
+    return earned, max_score, score, pending
 
 
 def attempt_to_dict(doc, include_details=False):
@@ -198,6 +268,7 @@ def attempt_to_dict(doc, include_details=False):
         "score": doc.get("score"),
         "earned": doc.get("earned"),
         "max_score": doc.get("max_score"),
+        "pending_manual": doc.get("pending_manual") or 0,
         "duration_seconds": doc.get("duration_seconds") or 0,
         "submitted_at": submitted.isoformat() + "Z" if isinstance(submitted, datetime) else submitted,
     }

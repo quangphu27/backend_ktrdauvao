@@ -74,7 +74,7 @@ def sanitize_question(raw, index=0):
         # python_code — tự luận viết code, chấm thủ công
         starter = raw.get("starter_code")
         if starter is None:
-            starter = "# Viết code Python của em ở đây\n"
+            starter = ""
         q["options"] = []
         q["correct_answer"] = (raw.get("correct_answer") or "").strip() or None
         q["answer_aliases"] = []

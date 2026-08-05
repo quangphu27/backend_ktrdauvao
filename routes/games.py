@@ -662,3 +662,46 @@ def guess_picture_word(slug):
         "players": players,
         "message": f"Đúng! +{points}" if correct else "Chưa đúng, thử lại!",
     })
+
+
+# ── Hỏi xoáy đáp xoay ───────────────────────────────────
+
+@games_bp.route("/twist-quiz/complete", methods=["POST"])
+def twist_quiz_complete():
+    data = request.get_json() or {}
+    name = (data.get("student_name") or data.get("name") or "").strip()
+    grade = (data.get("student_grade") or data.get("grade") or "").strip()
+    phone = (data.get("student_phone") or data.get("phone") or "").strip()
+    if not name:
+        return jsonify({"message": "Vui lòng nhập họ tên"}), 400
+    doc = {
+        "student_name": name,
+        "student_grade": grade,
+        "student_phone": phone,
+        "game": "hoi_xoay_dap_xoay",
+        "completed_at": datetime.utcnow(),
+    }
+    result = col("twist_quiz_completions").insert_one(doc)
+    return jsonify({
+        "message": "Đã gửi! Lên gặp thầy Phú nhận socola nhé 🍫",
+        "id": str(result.inserted_id),
+    }), 201
+
+
+@games_bp.route("/admin/twist-quiz/completions", methods=["GET"])
+@jwt_required()
+def twist_quiz_completions():
+    if not _admin_required():
+        return jsonify({"message": "Không có quyền truy cập"}), 403
+    docs = list(col("twist_quiz_completions").find().sort("completed_at", -1).limit(200))
+    out = []
+    for d in docs:
+        ts = d.get("completed_at")
+        out.append({
+            "id": str(d["_id"]),
+            "student_name": d.get("student_name"),
+            "student_grade": d.get("student_grade") or "",
+            "student_phone": d.get("student_phone") or "",
+            "completed_at": ts.isoformat() + "Z" if isinstance(ts, datetime) else ts,
+        })
+    return jsonify(out)

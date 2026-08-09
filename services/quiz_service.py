@@ -81,6 +81,17 @@ def sanitize_question(raw, index=0):
         q["starter_code"] = str(starter)
         q["allow_run"] = bool(raw.get("allow_run", True))
         q["hint"] = (raw.get("hint") or "").strip() or None
+        # File mẫu (hiển thị + ghi vào môi trường chạy thử)
+        sample_files = []
+        for sf in raw.get("sample_files") or []:
+            name = (sf.get("name") or "").strip()
+            if not name:
+                continue
+            sample_files.append({
+                "name": name,
+                "content": str(sf.get("content") if sf.get("content") is not None else ""),
+            })
+        q["sample_files"] = sample_files
     return q
 
 
@@ -112,6 +123,7 @@ def question_for_student(q):
         item["starter_code"] = q.get("starter_code") or ""
         item["allow_run"] = bool(q.get("allow_run", True))
         item["hint"] = q.get("hint")
+        item["sample_files"] = q.get("sample_files") or []
     return item
 
 

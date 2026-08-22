@@ -56,6 +56,18 @@ def main():
             print("  3. Hoac deploy backend len Render/Railway (free, ket noi Atlas duoc)")
         elif "authentication failed" in err.lower():
             print("Nguyen nhan: Sai username/password trong MONGODB_URI")
+        elif "replica set members" in err.lower() or "replicasetnoprimary" in err.lower():
+            print("Nguyen nhan: Server Render/hosting KHONG ket noi duoc toi MongoDB Atlas.")
+            print("  (server_type: Unknown = bi chan mang / IP chua whitelist)")
+            print()
+            print("Giai phap:")
+            print("  1. MongoDB Atlas -> Network Access -> Add IP Address")
+            print("     -> Allow Access from Anywhere: 0.0.0.0/0")
+            print("  2. Render Dashboard -> Environment -> kiem tra MONGODB_URI")
+            print("     (phai giong .env local, co mat khau dung)")
+            print("  3. Manual Deploy lai service sau khi sua")
+            print()
+            print(f"Chi tiet: {err[:400]}")
         else:
             print(f"Chi tiet: {err[:500]}")
         sys.exit(1)

@@ -25,29 +25,24 @@ QUESTIONS = [
             "   · ≥ 5     → Trung bình\n"
             "   · < 5     → Yếu\n\n"
             "Điều kiện thêm:\n"
-            "Với học sinh Giỏi và Khá — không được có môn nào dưới 3 điểm.\n"
-            "Nếu có môn < 3 thì hạ xuống Trung bình "
-            "(hoặc Yếu nếu trung bình < 5).\n\n"
+            "Nếu có bất kỳ môn nào dưới 3 điểm → xếp loại Yếu "
+            "(bất kể điểm trung bình cao hay thấp).\n\n"
             "In ra điểm trung bình (1 chữ số thập phân) và xếp loại.\n\n"
-            "Ví dụ 1:\n"
+            "Gợi ý in 1 chữ số thập phân:\n"
+            "print(f\"{tb:.1f}\")\n\n"
+            "Ví dụ:\n"
             "Toán: 8\n"
             "Văn: 9\n"
             "Anh: 8.5\n"
-            "→ Trung bình: 8.5 — Xếp loại: Giỏi\n\n"
-            "Ví dụ 2:\n"
-            "Toán: 9\n"
-            "Văn: 8\n"
-            "Anh: 2\n"
-            "→ Trung bình: 6.3 — Xếp loại: Trung bình "
-            "(vì có môn dưới 3, không được Khá)"
+            "→ Trung bình: 8.5 — Xếp loại: Giỏi"
         ),
         "points": 5,
         "allow_run": True,
         "hint": (
-            "Tính tb = (toan + van + anh) / 3. "
-            "Xếp loại theo tb, rồi kiểm tra: "
-            "nếu loại Giỏi/Khá mà min(toan, van, anh) < 3 "
-            "thì hạ xuống Trung bình (hoặc Yếu nếu tb < 5)."
+            "Nếu min(toan, van, anh) < 3 → xếp Yếu. "
+            "Ngược lại xếp theo điểm trung bình: "
+            "≥8 Giỏi, ≥6.5 Khá, ≥5 Trung bình, <5 Yếu. "
+            "In 1 chữ số thập phân: print(f\"{tb:.1f}\")"
         ),
         "starter_code": (
             "toan = float(input(\"Điểm Toán: \"))\n"
@@ -78,8 +73,6 @@ QUESTIONS = [
             "Ví dụ: 2000, 2024 là nhuận; 1900, 2023 không nhuận.\n\n"
             "Ví dụ:\n"
             "Nhập: 28 2 2024  →  29/02/2024\n"
-            "Nhập: 29 2 2024  →  01/03/2024\n"
-            "Nhập: 31 12 2023 →  01/01/2024\n"
             "Nhập: 15 8 2025  →  16/08/2025"
         ),
         "points": 5,

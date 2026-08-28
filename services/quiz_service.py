@@ -53,6 +53,7 @@ def sanitize_question(raw, index=0):
         if not any(o["is_correct"] for o in options):
             raise ValueError(f"Câu {index + 1}: cần chọn 1 đáp án đúng")
         q["options"] = options
+        q["explanation"] = (raw.get("explanation") or "").strip() or None
         q["correct_answer"] = None
         q["starter_code"] = ""
         q["allow_run"] = False
@@ -104,7 +105,7 @@ def sanitize_questions(raw_list):
     return out
 
 
-def question_for_student(q):
+def question_for_student(q, include_explanation=False):
     """Ẩn đáp án đúng khi gửi cho học sinh."""
     item = {
         "id": q["id"],
@@ -119,6 +120,8 @@ def question_for_student(q):
             {"id": o["id"], "text": o["text"]}
             for o in (q.get("options") or [])
         ]
+        if include_explanation and q.get("explanation"):
+            item["explanation"] = q["explanation"]
     elif item["type"] == "python_code":
         item["starter_code"] = q.get("starter_code") or ""
         item["allow_run"] = bool(q.get("allow_run", True))
@@ -127,14 +130,17 @@ def question_for_student(q):
     return item
 
 
-def quiz_to_dict(doc, include_answers=False):
+def quiz_to_dict(doc, include_answers=False, include_explanations=False):
     if not doc:
         return None
     questions = doc.get("questions") or []
     if include_answers:
         qs = questions
     else:
-        qs = [question_for_student(q) for q in questions]
+        qs = [
+            question_for_student(q, include_explanation=include_explanations)
+            for q in questions
+        ]
 
     created = doc.get("created_at")
     updated = doc.get("updated_at")

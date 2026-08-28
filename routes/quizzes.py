@@ -4,7 +4,7 @@ from datetime import datetime
 from io import BytesIO
 
 from flask import Blueprint, current_app, jsonify, request, send_file
-from flask_jwt_extended import get_jwt, jwt_required
+from flask_jwt_extended import get_jwt, jwt_required, verify_jwt_in_request
 from openpyxl import Workbook
 from openpyxl.styles import Alignment, Font, PatternFill
 
@@ -47,12 +47,21 @@ def get_quiz_public(slug):
     return jsonify(data)
 
 
+def _is_admin_request():
+    try:
+        verify_jwt_in_request(optional=True)
+        return get_jwt().get("role") == "admin"
+    except Exception:
+        return False
+
+
 @quizzes_bp.route("/by-slug/<slug>/start", methods=["POST"])
 def start_quiz(slug):
     doc = col("quizzes").find_one({"slug": slug, "is_active": True})
     if not doc:
         return jsonify({"message": "Không tìm thấy bài kiểm tra hoặc đã tắt"}), 404
-    return jsonify(quiz_to_dict(doc, include_answers=False))
+    include_explanations = _is_admin_request()
+    return jsonify(quiz_to_dict(doc, include_answers=False, include_explanations=include_explanations))
 
 
 @quizzes_bp.route("/by-slug/<slug>/submit", methods=["POST"])

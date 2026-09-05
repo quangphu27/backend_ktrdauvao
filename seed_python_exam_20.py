@@ -263,6 +263,114 @@ D. Ngôn ngữ truy vấn – Sai.""",
         ],
         "order_num": 21,
     },
+    # ── Tự luận 3: đếm bi theo phần trăm ─────────────────
+    {
+        "type": "python_code",
+        "content": (
+            "Câu 23 — Đếm số bi mỗi loại\n\n"
+            "Thầy Phú có 100 viên bi. Trong đó:\n"
+            "- 20% là bi đỏ\n"
+            "- Bi vàng chiếm 30% số bi còn lại (sau khi lấy bi đỏ)\n"
+            "- Số bi tím nhiều hơn số bi xanh 10 viên\n\n"
+            "Hỏi thầy Phú có bao nhiêu viên bi mỗi loại?\n"
+            "In ra màn hình số bi mỗi loại theo đúng thứ tự và định dạng:\n\n"
+            "Bi do = ...\n"
+            "Bi vang = ...\n"
+            "Bi tim = ...\n"
+            "Bi xanh = ...\n\n"
+            "Ví dụ định dạng (số chỉ mang tính minh họa):\n"
+            "Bi do = 10\n"
+            "Bi vang = 20\n"
+            "Bi tim = 30\n"
+            "Bi xanh = 40"
+        ),
+        "points": 5,
+        "allow_run": True,
+        "hint": (
+            "do = 20% * 100. Con lai = 100 - do. "
+            "vang = 30% * con lai. "
+            "tim + xanh = phan con lai; tim = xanh + 10."
+        ),
+        "starter_code": (
+            "tong = 100\n\n"
+            "# Tinh so bi moi loai va in ra theo dinh dang:\n"
+            "# Bi do = ...\n"
+            "# Bi vang = ...\n"
+            "# Bi tim = ...\n"
+            "# Bi xanh = ...\n"
+        ),
+        "testcases": [
+            {
+                "name": "Số bi mỗi loại",
+                "mode": "stdin",
+                "stdin": "",
+                "expected_stdout": "Bi do = 20\nBi vang = 24\nBi tim = 33\nBi xanh = 23",
+            },
+        ],
+        "order_num": 22,
+    },
+    # ── Tự luận 4: tìm số bị thiếu trong dãy ─────────────
+    {
+        "type": "python_code",
+        "content": (
+            "Câu 24 — Tìm số bị thiếu trong dãy\n\n"
+            "Cho một dãy số dạng ds = [1, 2, ..., n] nhưng bị thiếu đúng 1 số.\n"
+            "Ví dụ: ds = [1, 2, 3, 4, 5, 6, 8, 9, 10] → số bị thiếu là 7.\n\n"
+            "Viết hàm find_missing(ds) nhận vào list và trả về (return) số bị thiếu.\n"
+            "Hệ thống sẽ gọi hàm với nhiều dãy khác nhau để chấm.\n\n"
+            "Gợi ý: dãy 1..n thiếu 1 số thì n = len(ds) + 1; "
+            "tổng đầy đủ = n*(n+1)//2; số thiếu = tổng đầy đủ − sum(ds)."
+        ),
+        "points": 5,
+        "allow_run": True,
+        "function_name": "find_missing",
+        "hint": "n = len(ds) + 1; return n*(n+1)//2 - sum(ds)",
+        "starter_code": (
+            "def find_missing(ds):\n"
+            "    # Tim va return so bi thieu trong ds\n"
+            "    pass\n\n"
+            "# Thu nghiem (khong bat buoc):\n"
+            "# print(find_missing([1, 2, 3, 4, 5, 6, 8, 9, 10]))  # 7\n"
+        ),
+        "testcases": [
+            {
+                "name": "Ví dụ đề bài — thiếu 7",
+                "mode": "function",
+                "function_name": "find_missing",
+                "args": [[1, 2, 3, 4, 5, 6, 8, 9, 10]],
+                "expected": 7,
+            },
+            {
+                "name": "Thiếu ở giữa",
+                "mode": "function",
+                "function_name": "find_missing",
+                "args": [[1, 2, 4, 5]],
+                "expected": 3,
+            },
+            {
+                "name": "Thiếu số 1",
+                "mode": "function",
+                "function_name": "find_missing",
+                "args": [[2, 3, 4, 5]],
+                "expected": 1,
+            },
+            {
+                "name": "Thiếu số cuối",
+                "mode": "function",
+                "function_name": "find_missing",
+                "args": [[1, 2, 3, 4, 5, 6, 7, 8, 9]],
+                "expected": 10,
+            },
+            {
+                "name": "Dãy ngắn",
+                "mode": "function",
+                "function_name": "find_missing",
+                "args": [[1, 3]],
+                "expected": 2,
+            },
+        ],
+        "order_num": 23,
+    },
 ]
 
 
@@ -271,7 +379,7 @@ def main():
     with app.app_context():
         questions = sanitize_questions(RAW)
         description = (
-            "Bài kiểm tra Python: 20 câu trắc nghiệm lý thuyết + 2 câu tự luận viết code. "
+            "Bài kiểm tra Python: 20 câu trắc nghiệm lý thuyết + 4 câu tự luận viết code. "
             "Câu tự luận được chấm tự động bằng testcase khi nộp bài."
         )
         now = datetime.utcnow()
@@ -288,7 +396,7 @@ def main():
                         "questions": questions,
                         "description": description,
                         "slug": FIXED_SLUG,
-                        "duration_minutes": 40,
+                        "duration_minutes": 50,
                         "is_active": True,
                         "updated_at": now,
                     }
@@ -320,7 +428,7 @@ def main():
                 "title": QUIZ_TITLE,
                 "description": description,
                 "slug": slug,
-                "duration_minutes": 40,
+                "duration_minutes": 50,
                 "is_active": True,
                 "questions": questions,
                 "created_at": now,

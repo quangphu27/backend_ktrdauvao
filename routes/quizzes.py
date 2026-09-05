@@ -75,12 +75,13 @@ def submit_quiz(slug):
     grade = (data.get("student_grade") or data.get("grade") or "").strip()
     phone = (data.get("student_phone") or data.get("phone") or "").strip().replace(" ", "")
     answers = data.get("answers") or {}
+    code_grades = data.get("code_grades") or {}
     duration = int(data.get("duration_seconds") or 0)
 
     if not name or not grade:
         return jsonify({"message": "Vui lòng nhập họ tên và lớp"}), 400
 
-    graded = grade_attempt(doc, answers)
+    graded = grade_attempt(doc, answers, code_grades=code_grades)
     attempt = {
         "quiz_id": str(doc["_id"]),
         "quiz_title": doc.get("title"),

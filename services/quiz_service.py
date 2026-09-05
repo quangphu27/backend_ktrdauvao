@@ -72,7 +72,7 @@ def sanitize_question(raw, index=0):
         q["starter_code"] = ""
         q["allow_run"] = False
     else:
-        # python_code — tự luận viết code, chấm thủ công
+        # python_code — tự luận viết code; có testcases thì chấm tự động
         starter = raw.get("starter_code")
         if starter is None:
             starter = ""
@@ -93,7 +93,41 @@ def sanitize_question(raw, index=0):
                 "content": str(sf.get("content") if sf.get("content") is not None else ""),
             })
         q["sample_files"] = sample_files
+        q["testcases"] = _sanitize_testcases(raw.get("testcases") or [], index)
+        q["function_name"] = (raw.get("function_name") or "").strip() or None
     return q
+
+
+def _sanitize_testcases(raw_list, q_index=0):
+    """Chuẩn hóa testcase cho câu python_code.
+
+    mode=function: gọi hàm với args, so sánh return
+    mode=stdin: giả lập input(), so sánh stdout
+    """
+    out = []
+    for i, tc in enumerate(raw_list or []):
+        if not isinstance(tc, dict):
+            continue
+        mode = (tc.get("mode") or "stdin").lower()
+        if mode not in ("function", "stdin"):
+            mode = "stdin"
+        item = {
+            "id": tc.get("id") or new_id(),
+            "name": (tc.get("name") or f"Test {i + 1}").strip(),
+            "mode": mode,
+        }
+        if mode == "function":
+            item["function_name"] = (tc.get("function_name") or "").strip()
+            item["args"] = tc.get("args") if isinstance(tc.get("args"), list) else []
+            item["expected"] = tc.get("expected")
+        else:
+            stdin = tc.get("stdin")
+            if stdin is None:
+                stdin = ""
+            item["stdin"] = str(stdin)
+            item["expected_stdout"] = str(tc.get("expected_stdout") if tc.get("expected_stdout") is not None else "")
+        out.append(item)
+    return out
 
 
 def sanitize_questions(raw_list):
@@ -127,6 +161,10 @@ def question_for_student(q, include_explanation=False):
         item["allow_run"] = bool(q.get("allow_run", True))
         item["hint"] = q.get("hint")
         item["sample_files"] = q.get("sample_files") or []
+        item["function_name"] = q.get("function_name")
+        # Gửi testcases cho client chạy Pyodide khi nộp bài
+        item["testcases"] = q.get("testcases") or []
+        item["has_testcases"] = bool(q.get("testcases"))
     return item
 
 
@@ -160,9 +198,25 @@ def quiz_to_dict(doc, include_answers=False, include_explanations=False):
     }
 
 
-def grade_attempt(quiz, answers_map):
-    """Chấm bài. answers_map: {question_id: option_id | text | code}."""
+def _extract_code_answer(student_ans):
+    """answers có thể là string code hoặc {code, test_result}."""
+    if student_ans is None:
+        return "", None
+    if isinstance(student_ans, dict):
+        code = student_ans.get("code")
+        if code is None:
+            code = student_ans.get("answer") or ""
+        return str(code), student_ans.get("test_result")
+    return str(student_ans), None
+
+
+def grade_attempt(quiz, answers_map, code_grades=None):
+    """Chấm bài. answers_map: {question_id: option_id | text | code | {code, test_result}}.
+
+    code_grades (optional): {question_id: {passed, total, results}} — kết quả testcase từ client.
+    """
     answers_map = answers_map or {}
+    code_grades = code_grades or {}
     details = []
     earned = 0
     max_score = 0
@@ -184,26 +238,65 @@ def grade_attempt(quiz, answers_map):
         points_awarded = 0
 
         if qtype == "python_code":
-            chosen_text = "" if student_ans is None else str(student_ans)
+            chosen_text, embedded = _extract_code_answer(student_ans)
             answered = bool(chosen_text.strip())
-            needs_manual_review = True
-            is_correct = None  # chưa chấm
-            correct_text = q.get("correct_answer") or "(Giáo viên chấm thủ công)"
-            if answered:
-                pending_manual += 1
-            details.append({
-                "question_id": qid,
-                "type": qtype,
-                "content": q.get("content"),
-                "image_url": q.get("image_url"),
-                "points": points,
-                "points_awarded": 0,
-                "student_answer": chosen_text,
-                "correct_answer": correct_text,
-                "is_correct": is_correct,
-                "answered": answered,
-                "needs_manual_review": needs_manual_review,
-            })
+            testcases = q.get("testcases") or []
+            grade_info = code_grades.get(qid) or code_grades.get(q["id"]) or embedded or {}
+            if not isinstance(grade_info, dict):
+                grade_info = {}
+
+            if testcases:
+                total = len(testcases)
+                passed = int(grade_info.get("passed") or 0)
+                passed = max(0, min(passed, total))
+                if total > 0 and answered and passed >= total:
+                    is_correct = True
+                    points_awarded = points
+                    earned += points
+                elif answered and total > 0 and passed > 0:
+                    is_correct = False
+                    points_awarded = int(round(points * passed / total))
+                    earned += points_awarded
+                else:
+                    is_correct = False if answered else False
+                    points_awarded = 0
+                needs_manual_review = False
+                correct_text = f"Testcase: {passed}/{total} đạt"
+                details.append({
+                    "question_id": qid,
+                    "type": qtype,
+                    "content": q.get("content"),
+                    "image_url": q.get("image_url"),
+                    "points": points,
+                    "points_awarded": points_awarded,
+                    "student_answer": chosen_text,
+                    "correct_answer": correct_text,
+                    "is_correct": is_correct if answered else False,
+                    "answered": answered,
+                    "needs_manual_review": False,
+                    "tests_passed": passed,
+                    "tests_total": total,
+                    "test_results": grade_info.get("results") or [],
+                })
+            else:
+                needs_manual_review = True
+                is_correct = None  # chưa chấm
+                correct_text = q.get("correct_answer") or "(Giáo viên chấm thủ công)"
+                if answered:
+                    pending_manual += 1
+                details.append({
+                    "question_id": qid,
+                    "type": qtype,
+                    "content": q.get("content"),
+                    "image_url": q.get("image_url"),
+                    "points": points,
+                    "points_awarded": 0,
+                    "student_answer": chosen_text,
+                    "correct_answer": correct_text,
+                    "is_correct": is_correct,
+                    "answered": answered,
+                    "needs_manual_review": needs_manual_review,
+                })
             continue
 
         if qtype == "text":
@@ -227,6 +320,13 @@ def grade_attempt(quiz, answers_map):
             earned += points
             points_awarded = points
 
+        answered_flag = False
+        if student_ans is not None:
+            if isinstance(student_ans, dict):
+                answered_flag = bool(str(student_ans.get("code") or "").strip())
+            else:
+                answered_flag = bool(str(student_ans).strip())
+
         details.append({
             "question_id": qid,
             "type": qtype,
@@ -237,7 +337,7 @@ def grade_attempt(quiz, answers_map):
             "student_answer": chosen_text,
             "correct_answer": correct_text,
             "is_correct": is_correct,
-            "answered": bool(str(student_ans).strip()) if student_ans is not None else False,
+            "answered": answered_flag,
             "needs_manual_review": False,
         })
 

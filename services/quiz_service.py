@@ -103,13 +103,14 @@ def _sanitize_testcases(raw_list, q_index=0):
 
     mode=function: gọi hàm với args, so sánh return
     mode=stdin: giả lập input(), so sánh stdout
+    mode=class_method: tạo object class rồi gọi method, so sánh return
     """
     out = []
     for i, tc in enumerate(raw_list or []):
         if not isinstance(tc, dict):
             continue
         mode = (tc.get("mode") or "stdin").lower()
-        if mode not in ("function", "stdin"):
+        if mode not in ("function", "stdin", "class_method"):
             mode = "stdin"
         item = {
             "id": tc.get("id") or new_id(),
@@ -119,6 +120,14 @@ def _sanitize_testcases(raw_list, q_index=0):
         if mode == "function":
             item["function_name"] = (tc.get("function_name") or "").strip()
             item["args"] = tc.get("args") if isinstance(tc.get("args"), list) else []
+            item["expected"] = tc.get("expected")
+        elif mode == "class_method":
+            item["class_name"] = (tc.get("class_name") or "").strip()
+            item["constructor_args"] = (
+                tc.get("constructor_args") if isinstance(tc.get("constructor_args"), list) else []
+            )
+            item["method"] = (tc.get("method") or "").strip()
+            item["method_args"] = tc.get("method_args") if isinstance(tc.get("method_args"), list) else []
             item["expected"] = tc.get("expected")
         else:
             stdin = tc.get("stdin")

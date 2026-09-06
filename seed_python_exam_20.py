@@ -379,8 +379,7 @@ def main():
     with app.app_context():
         questions = sanitize_questions(RAW)
         description = (
-            "Bài kiểm tra Python: 20 câu trắc nghiệm lý thuyết + 4 câu tự luận viết code. "
-            "Câu tự luận được chấm tự động bằng testcase khi nộp bài."
+            "Bài kiểm tra Python."
         )
         now = datetime.utcnow()
         existing = col("quizzes").find_one({"title": QUIZ_TITLE}) or col("quizzes").find_one(

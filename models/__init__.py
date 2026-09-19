@@ -1,5 +1,6 @@
 from .serializers import (
     user_to_dict,
+    is_user_approved,
     course_to_dict,
     question_to_dict,
     test_to_dict,
@@ -11,6 +12,7 @@ from .serializers import (
 
 __all__ = [
     "user_to_dict",
+    "is_user_approved",
     "course_to_dict",
     "question_to_dict",
     "test_to_dict",

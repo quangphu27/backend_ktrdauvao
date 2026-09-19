@@ -16,11 +16,16 @@ def user_to_dict(doc):
         return None
     dob = doc.get("date_of_birth")
     created = doc.get("created_at")
+    # Tài khoản cũ không có field → coi như đã duyệt
+    status = doc.get("approval_status")
+    if not status:
+        status = "approved"
     return {
         "id": oid_str(doc["_id"]),
         "full_name": doc.get("full_name"),
         "email": doc.get("email"),
         "role": doc.get("role", "student"),
+        "approval_status": status,
         "date_of_birth": dob.isoformat() if hasattr(dob, "isoformat") else dob,
         "grade": doc.get("grade"),
         "school": doc.get("school"),
@@ -28,6 +33,18 @@ def user_to_dict(doc):
         "parent_phone": doc.get("parent_phone"),
         "created_at": created.isoformat() if hasattr(created, "isoformat") else created,
     }
+
+
+def is_user_approved(doc):
+    """Admin luôn được vào; user cũ không có status = đã duyệt."""
+    if not doc:
+        return False
+    if doc.get("role") == "admin":
+        return True
+    status = doc.get("approval_status")
+    if status is None:
+        return True
+    return status == "approved"
 
 
 def course_to_dict(doc):

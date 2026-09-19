@@ -154,6 +154,7 @@ def seed_database():
         "email": "admin@kiemtra.edu.vn",
         "password_hash": hash_password("admin123"),
         "role": "admin",
+        "approval_status": "approved",
         "created_at": datetime.utcnow(),
     })
 

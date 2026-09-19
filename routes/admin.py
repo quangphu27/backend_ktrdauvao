@@ -1,4 +1,5 @@
-from flask import Blueprint, jsonify, send_file, current_app
+from datetime import datetime
+from flask import Blueprint, jsonify, send_file, current_app, request
 from flask_jwt_extended import jwt_required, get_jwt
 from database import col, parse_oid, oid_str
 from models import user_to_dict, test_to_dict, test_for_export
@@ -76,6 +77,36 @@ def get_students():
         data["test_count"] = col("tests").count_documents({"user_id": data["id"]})
         result.append(data)
     return jsonify(result)
+
+
+@admin_bp.route("/students/<student_id>/approval", methods=["PATCH"])
+@jwt_required()
+def set_student_approval(student_id):
+    if not admin_required():
+        return jsonify({"message": "Không có quyền truy cập"}), 403
+
+    data = request.get_json() or {}
+    status = data.get("approval_status")
+    if status not in ("approved", "rejected", "pending"):
+        return jsonify({"message": "Trạng thái không hợp lệ (approved/rejected/pending)"}), 400
+
+    oid = parse_oid(student_id)
+    doc = col("users").find_one({"_id": oid, "role": "student"})
+    if not doc:
+        return jsonify({"message": "Không tìm thấy học sinh"}), 404
+
+    col("users").update_one(
+        {"_id": oid},
+        {"$set": {"approval_status": status, "approved_at": datetime.utcnow() if status == "approved" else None}},
+    )
+    updated = col("users").find_one({"_id": oid})
+    messages = {
+        "approved": "Đã duyệt tài khoản",
+        "rejected": "Đã từ chối tài khoản",
+        "pending": "Đã đưa về chờ duyệt",
+    }
+    return jsonify({"message": messages[status], "user": user_to_dict(updated)})
+
 
 
 @admin_bp.route("/tests", methods=["GET"])

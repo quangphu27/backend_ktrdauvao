@@ -9,7 +9,7 @@ from openpyxl import Workbook
 from openpyxl.styles import Alignment, Font, PatternFill
 from werkzeug.utils import secure_filename
 
-from database import col, parse_oid
+from database import col, parse_oid, oid_str
 from services.cloudinary_service import upload_image_file, upload_submission_file
 from services.quiz_service import (
     attempt_to_dict,
@@ -351,6 +351,7 @@ def admin_grade_code(attempt_id):
 @quizzes_bp.route("/admin/<quiz_id>/export", methods=["GET"])
 @jwt_required()
 def admin_export_attempts(quiz_id):
+    """Xuất Excel: mỗi lớp 1 sheet — tên, điểm, link chi tiết bài làm."""
     if not _admin_required():
         return jsonify({"message": "Không có quyền truy cập"}), 403
     quiz = col("quizzes").find_one({"_id": parse_oid(quiz_id)})
@@ -358,53 +359,110 @@ def admin_export_attempts(quiz_id):
         return jsonify({"message": "Không tìm thấy bài kiểm tra"}), 404
 
     attempts = list(col("quiz_attempts").find({"quiz_id": str(quiz["_id"])}).sort("submitted_at", -1))
-    wb = Workbook()
-    ws = wb.active
-    ws.title = "Ket qua"
-    headers = ["STT", "Hoc sinh", "Lop", "SDT", "Diem %", "Dung/Tong", "Thoi gian (giay)", "Ngay nop"]
-    ws.append(headers)
-    header_fill = PatternFill("solid", fgColor="4A90D9")
-    for col_idx in range(1, len(headers) + 1):
-        cell = ws.cell(1, col_idx)
-        cell.fill = header_fill
-        cell.font = Font(bold=True, color="FFFFFF")
+    frontend = (current_app.config.get("FRONTEND_URL") or "https://kiemtradauvao.vercel.app").rstrip("/")
+    quiz_oid = oid_str(quiz["_id"])
 
-    for i, a in enumerate(attempts, 1):
-        submitted = a.get("submitted_at")
-        date_str = submitted.strftime("%d/%m/%Y %H:%M") if hasattr(submitted, "strftime") else str(submitted or "")
-        ws.append([
-            i,
-            a.get("student_name"),
-            a.get("student_grade"),
-            a.get("student_phone") or "",
-            a.get("score"),
-            f"{a.get('earned')}/{a.get('max_score')}",
-            a.get("duration_seconds") or 0,
-            date_str,
-        ])
+    def _sheet_name(raw):
+        name = (raw or "").strip() or "Khong_ro_lop"
+        for ch in r'\/?*[]:':
+            name = name.replace(ch, "_")
+        return name[:31] or "Khong_ro_lop"
 
-    ws2 = wb.create_sheet("Chi tiet")
-    ws2.append(["Hoc sinh", "Lop", "Cau hoi", "Loai", "Tra loi", "Dap an dung", "Ket qua", "Diem"])
-    for col_idx in range(1, 9):
-        cell = ws2.cell(1, col_idx)
-        cell.fill = header_fill
-        cell.font = Font(bold=True, color="FFFFFF")
+    def _sort_key(grade):
+        g = (grade or "").strip()
+        order = {
+            "Scratch1": 0, "Scratch2": 1, "Scratch3": 2, "Scratch4": 3,
+            "Scratch 1": 0, "Scratch 2": 1, "Scratch 3": 2, "Scratch 4": 3,
+        }
+        if g in order:
+            return (0, order[g], g.lower())
+        if not g or g == "Không rõ lớp":
+            return (2, 99, "")
+        return (1, 0, g.lower())
+
+    by_grade = {}
     for a in attempts:
-        for d in a.get("details") or []:
-            ws2.append([
-                a.get("student_name"),
-                a.get("student_grade"),
-                d.get("content") or "(có ảnh)",
-                d.get("type"),
-                d.get("student_answer") or "",
-                d.get("correct_answer") or "",
-                "Dung" if d.get("is_correct") else "Sai",
-                d.get("points") if d.get("is_correct") else 0,
-            ])
-            ws2.cell(ws2.max_row, 3).alignment = Alignment(wrap_text=True)
+        grade = (a.get("student_grade") or "").strip() or "Không rõ lớp"
+        by_grade.setdefault(grade, []).append(a)
 
-    ws.column_dimensions["B"].width = 24
-    ws2.column_dimensions["C"].width = 50
+    grades_sorted = sorted(by_grade.keys(), key=_sort_key)
+
+    wb = Workbook()
+    default_ws = wb.active
+    wb.remove(default_ws)
+
+    header_fill = PatternFill("solid", fgColor="4A90D9")
+    header_font = Font(bold=True, color="FFFFFF")
+    link_font = Font(color="0563C1", underline="single")
+    headers = [
+        "STT",
+        "Ten hoc sinh",
+        "Diem %",
+        "Diem (dat/tong)",
+        "Link chi tiet bai lam",
+        "Link admin cham bai",
+        "Ngay nop",
+    ]
+
+    used_titles = set()
+
+    def _unique_title(base):
+        title = base
+        n = 2
+        while title in used_titles:
+            suffix = f"_{n}"
+            title = base[: 31 - len(suffix)] + suffix
+            n += 1
+        used_titles.add(title)
+        return title
+
+    def _fill_sheet(ws, rows):
+        ws.append(headers)
+        for col_idx in range(1, len(headers) + 1):
+            cell = ws.cell(1, col_idx)
+            cell.fill = header_fill
+            cell.font = header_font
+        for i, a in enumerate(rows, 1):
+            attempt_id = oid_str(a["_id"])
+            detail_url = f"{frontend}/quiz-ket-qua/{attempt_id}"
+            admin_url = f"{frontend}/admin/quizzes/{quiz_oid}/results?attempt={attempt_id}"
+            submitted = a.get("submitted_at")
+            date_str = (
+                submitted.strftime("%d/%m/%Y %H:%M")
+                if hasattr(submitted, "strftime")
+                else str(submitted or "")
+            )
+            ws.append([
+                i,
+                a.get("student_name") or "",
+                a.get("score"),
+                f"{a.get('earned')}/{a.get('max_score')}",
+                "Xem chi tiet",
+                "Cham bai",
+                date_str,
+            ])
+            row = ws.max_row
+            c_detail = ws.cell(row, 5)
+            c_detail.hyperlink = detail_url
+            c_detail.font = link_font
+            c_admin = ws.cell(row, 6)
+            c_admin.hyperlink = admin_url
+            c_admin.font = link_font
+        ws.column_dimensions["A"].width = 6
+        ws.column_dimensions["B"].width = 28
+        ws.column_dimensions["C"].width = 10
+        ws.column_dimensions["D"].width = 14
+        ws.column_dimensions["E"].width = 18
+        ws.column_dimensions["F"].width = 18
+        ws.column_dimensions["G"].width = 18
+
+    ws_all = wb.create_sheet(_unique_title("Tat_ca"), 0)
+    _fill_sheet(ws_all, attempts)
+
+    for grade in grades_sorted:
+        ws = wb.create_sheet(_unique_title(_sheet_name(grade)))
+        rows = sorted(by_grade[grade], key=lambda x: (x.get("student_name") or "").lower())
+        _fill_sheet(ws, rows)
 
     output = BytesIO()
     wb.save(output)

@@ -1,9 +1,17 @@
-"""Seed: Kiểm tra đầu ra Scratch — 14 TN (60%) + 1 tự luận nộp .sb3 (40%).
+"""Seed: Kiểm tra đầu ra Scratch
 
-Đồng thời thêm 16 câu trắc nghiệm vào ngân hàng /admin/questions (khóa Scratch).
+- 14 câu TN mới (user gửi)
+- 16 câu TN lấy từ ngân hàng questions Scratch có sẵn
+- Xáo trộn vị trí 30 câu TN
+- 1 câu tự luận nộp .sb3 (40%)
+
+Điểm: 30 TN × 2 = 60 (60%) + tự luận 40 = 100.
+Đồng thời đảm bảo 14 câu mới (+ 2 bổ sung) có trong /admin/questions Scratch.
 """
 
 from datetime import datetime
+import random
+import re
 
 from bson import ObjectId
 from dotenv import load_dotenv
@@ -12,29 +20,23 @@ load_dotenv()
 
 from app import create_app
 from database import col, oid_str
-from services.quiz_service import generate_quiz_slug, quiz_to_dict, sanitize_questions
+from services.quiz_service import generate_quiz_slug, quiz_to_dict, sanitize_questions, new_id
 
 QUIZ_TITLE = "Kiểm tra đầu ra Scratch"
 FIXED_SLUG = "scratch-dau-ra"
 BANK_TAG = "scratch_exit"
-MCQ_POINTS = 3  # 14 × 3 = 42 → 60%
-ESSAY_POINTS = 28  # 40%
+MCQ_POINTS = 2  # 30 × 2 = 60 → 60%
+ESSAY_POINTS = 40  # 40%
+BANK_PICK = 16
+NEW_COUNT = 14
 
 
-def mcq(num, content, options, correct_idx, explanation=""):
-    opts = [{"text": t, "is_correct": i == correct_idx} for i, t in enumerate(options)]
-    return {
-        "type": "mcq",
-        "content": f"Câu {num}: {content}",
-        "points": MCQ_POINTS,
-        "options": opts,
-        "explanation": (explanation or "").strip() or None,
-        "order_num": num - 1,
-    }
+def _strip_cau_prefix(content):
+    return re.sub(r"^Câu\s*\d+\s*:\s*", "", (content or "").strip(), flags=re.IGNORECASE)
 
 
-# 14 câu vào quiz + 2 câu bổ sung chỉ vào bank (= 16)
-BANK_AND_QUIZ = [
+# 14 câu mới do user gửi
+NEW_QUESTIONS = [
     {
         "content": "Trong trò chơi Mèo bắt chuột, con chuột di chuyển theo đối tượng nào?",
         "options": ["Con mèo", "Con trỏ chuột", "Cạnh sân khấu", "Bàn phím"],
@@ -189,6 +191,7 @@ BANK_AND_QUIZ = [
     },
 ]
 
+# 2 câu bổ sung chỉ vào bank (không bắt buộc vào quiz)
 BANK_EXTRA = [
     {
         "content": (
@@ -231,13 +234,13 @@ def _bank_answers(options, correct_idx):
 
 
 def seed_bank(scratch_course_id):
-    """Thêm/ cập nhật 16 câu vào ngân hàng câu hỏi Scratch."""
+    """Đảm bảo 14 câu mới (+2 bổ sung) có trong ngân hàng Scratch."""
     col("questions").delete_many({
         "course_id": scratch_course_id,
         "bank_tag": BANK_TAG,
     })
     docs = []
-    for i, q in enumerate(BANK_AND_QUIZ + BANK_EXTRA):
+    for i, q in enumerate(NEW_QUESTIONS + BANK_EXTRA):
         docs.append({
             "course_id": scratch_course_id,
             "content": q["content"],
@@ -252,11 +255,116 @@ def seed_bank(scratch_course_id):
     print(f"BANK: inserted {len(docs)} questions for Scratch (tag={BANK_TAG})")
 
 
-def build_quiz_questions():
-    raw = []
-    for i, q in enumerate(BANK_AND_QUIZ, start=1):
-        raw.append(mcq(i, q["content"], q["options"], q["correct"]))
-    raw.append({
+def _new_to_quiz_mcq(q):
+    opts = [
+        {"id": new_id(), "text": t, "is_correct": i == q["correct"]}
+        for i, t in enumerate(q["options"])
+    ]
+    return {
+        "id": new_id(),
+        "type": "mcq",
+        "content": q["content"],
+        "image_url": None,
+        "points": MCQ_POINTS,
+        "order_num": 0,
+        "options": opts,
+        "explanation": None,
+    }
+
+
+def _bank_doc_to_quiz_mcq(doc):
+    options = []
+    for a in doc.get("answers") or []:
+        text = (a.get("answer_text") or a.get("text") or "").strip()
+        if not text:
+            continue
+        options.append({
+            "id": a.get("id") or new_id(),
+            "text": text,
+            "is_correct": bool(a.get("is_correct")),
+        })
+    return {
+        "id": new_id(),
+        "type": "mcq",
+        "content": _strip_cau_prefix(doc.get("content") or ""),
+        "image_url": doc.get("image_url") or None,
+        "points": MCQ_POINTS,
+        "order_num": 0,
+        "options": options,
+        "explanation": None,
+    }
+
+
+def pick_bank_questions(scratch_course_id, exclude_contents, n=BANK_PICK):
+    """Lấy n câu từ ngân hàng Scratch có sẵn (không lấy bản tagged scratch_exit trùng 14 câu mới)."""
+    exclude_norm = {_strip_cau_prefix(c).lower() for c in exclude_contents}
+
+    candidates = []
+    for doc in col("questions").find({"course_id": scratch_course_id}):
+        # Bỏ câu vừa seed với tag scratch_exit (trùng nội dung 14 câu mới)
+        if doc.get("bank_tag") == BANK_TAG:
+            continue
+        content = _strip_cau_prefix(doc.get("content") or "")
+        if not content:
+            continue
+        if content.lower() in exclude_norm:
+            continue
+        answers = doc.get("answers") or []
+        if len(answers) < 2:
+            continue
+        if not any(a.get("is_correct") for a in answers):
+            continue
+        candidates.append(doc)
+
+    if len(candidates) < n:
+        raise RuntimeError(
+            f"Ngân hàng Scratch chỉ còn {len(candidates)} câu hợp lệ, cần {n}. "
+            "Hãy seed thêm câu hỏi Scratch."
+        )
+
+    # Ưu tiên hard rồi medium rồi random
+    hard = [c for c in candidates if (c.get("level") or "") == "hard"]
+    medium = [c for c in candidates if (c.get("level") or "") == "medium"]
+    other = [c for c in candidates if c not in hard and c not in medium]
+
+    picked = []
+    random.shuffle(hard)
+    random.shuffle(medium)
+    random.shuffle(other)
+    for pool in (hard, medium, other):
+        for doc in pool:
+            if len(picked) >= n:
+                break
+            picked.append(doc)
+        if len(picked) >= n:
+            break
+
+    return picked[:n]
+
+
+def build_quiz_questions(scratch_course_id):
+    new_mcqs = [_new_to_quiz_mcq(q) for q in NEW_QUESTIONS]
+    assert len(new_mcqs) == NEW_COUNT
+
+    bank_docs = pick_bank_questions(
+        scratch_course_id,
+        exclude_contents=[q["content"] for q in NEW_QUESTIONS],
+        n=BANK_PICK,
+    )
+    bank_mcqs = [_bank_doc_to_quiz_mcq(d) for d in bank_docs]
+    assert len(bank_mcqs) == BANK_PICK
+
+    mcqs = new_mcqs + bank_mcqs
+    random.shuffle(mcqs)
+
+    # Đánh số lại sau khi xáo
+    for i, q in enumerate(mcqs):
+        body = _strip_cau_prefix(q["content"])
+        q["content"] = f"Câu {i + 1}: {body}"
+        q["order_num"] = i
+        q["points"] = MCQ_POINTS
+
+    essay = {
         "type": "scratch_file",
         "content": (
             "BẰNG KIẾN THỨC ĐÃ HỌC, HÃY XÂY DỰNG 1 BÀI LÀM TÂM ĐẮC NHẤT TRÊN SCRATCH.\n\n"
@@ -264,13 +372,16 @@ def build_quiz_questions():
             "Nộp file Scratch (.sb3) ở đây."
         ),
         "points": ESSAY_POINTS,
-        "order_num": 14,
+        "order_num": len(mcqs),
         "hint": (
-            "Trắc nghiệm chiếm 60% điểm (tự chấm). "
+            "30 câu trắc nghiệm chiếm 60% điểm (tự chấm, đã xáo thứ tự). "
             "Phần tự luận chiếm 40% — thầy xem chạy file .sb3 trên web rồi chấm."
         ),
         "accept_extensions": [".sb3", ".sb2"],
-    })
+    }
+
+    raw = mcqs + [essay]
+    print(f"QUIZ MCQ: {NEW_COUNT} new + {BANK_PICK} from bank = {len(mcqs)} (shuffled)")
     return sanitize_questions(raw)
 
 
@@ -283,9 +394,10 @@ def main():
         scratch_id = oid_str(course["_id"])
         seed_bank(scratch_id)
 
-        questions = build_quiz_questions()
+        questions = build_quiz_questions(scratch_id)
         description = (
-            "Kiểm tra đầu ra Scratch: 14 câu trắc nghiệm (60%, tự chấm) "
+            "Kiểm tra đầu ra Scratch: 30 câu trắc nghiệm xáo trộn "
+            "(14 câu mới + 16 câu ngân hàng, 60% tự chấm) "
             "+ 1 câu tự luận nộp file .sb3 (40%, giáo viên chấm)."
         )
         now = datetime.utcnow()
@@ -302,7 +414,7 @@ def main():
                         "questions": questions,
                         "description": description,
                         "slug": FIXED_SLUG,
-                        "duration_minutes": 60,
+                        "duration_minutes": 75,
                         "is_active": True,
                         "updated_at": now,
                     }
@@ -313,6 +425,7 @@ def main():
                 "questions": questions,
                 "slug": FIXED_SLUG,
                 "description": description,
+                "duration_minutes": 75,
             })
             data = quiz_to_dict(existing, include_answers=True)
             print("UPDATED")
@@ -333,7 +446,7 @@ def main():
                 "title": QUIZ_TITLE,
                 "description": description,
                 "slug": slug,
-                "duration_minutes": 60,
+                "duration_minutes": 75,
                 "is_active": True,
                 "questions": questions,
                 "created_at": now,
@@ -344,9 +457,10 @@ def main():
             data = quiz_to_dict(doc, include_answers=True)
             print("CREATED")
 
+        mcq_n = sum(1 for q in data["questions"] if q.get("type") == "mcq")
         print(f"id={data['id']}")
         print(f"slug={data['slug']}")
-        print(f"questions={len(data['questions'])}")
+        print(f"questions={len(data['questions'])} (mcq={mcq_n})")
         print(f"max_score={data['max_score']}")
         print(f"public=/quiz/{data['slug']}")
 

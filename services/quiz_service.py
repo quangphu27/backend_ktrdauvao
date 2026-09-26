@@ -23,7 +23,7 @@ def _norm_text(s):
 def sanitize_question(raw, index=0):
     """Chuẩn hóa 1 câu hỏi từ payload admin."""
     qtype = (raw.get("type") or "mcq").lower()
-    if qtype not in ("mcq", "text", "python_code"):
+    if qtype not in ("mcq", "text", "python_code", "scratch_file"):
         qtype = "mcq"
 
     q = {
@@ -71,6 +71,22 @@ def sanitize_question(raw, index=0):
         q["answer_aliases"] = aliases
         q["starter_code"] = ""
         q["allow_run"] = False
+    elif qtype == "scratch_file":
+        # Nộp file .sb3 — giáo viên chấm thủ công, xem trên web
+        q["options"] = []
+        q["correct_answer"] = None
+        q["answer_aliases"] = []
+        q["starter_code"] = ""
+        q["allow_run"] = False
+        q["hint"] = (raw.get("hint") or "").strip() or None
+        accept = raw.get("accept_extensions") or [".sb3"]
+        if isinstance(accept, str):
+            accept = [accept]
+        q["accept_extensions"] = [
+            (a if str(a).startswith(".") else f".{a}").lower()
+            for a in accept
+            if a
+        ] or [".sb3"]
     else:
         # python_code — tự luận viết code; có testcases thì chấm tự động
         starter = raw.get("starter_code")
@@ -174,6 +190,9 @@ def question_for_student(q, include_explanation=False):
         # Gửi testcases cho client chạy Pyodide khi nộp bài
         item["testcases"] = q.get("testcases") or []
         item["has_testcases"] = bool(q.get("testcases"))
+    elif item["type"] == "scratch_file":
+        item["hint"] = q.get("hint")
+        item["accept_extensions"] = q.get("accept_extensions") or [".sb3"]
     return item
 
 
@@ -219,8 +238,25 @@ def _extract_code_answer(student_ans):
     return str(student_ans), None
 
 
+def _extract_file_answer(student_ans):
+    """answers scratch_file: {url, original_name, ...}."""
+    if not isinstance(student_ans, dict):
+        return None
+    url = (student_ans.get("url") or "").strip()
+    if not url:
+        return None
+    return {
+        "url": url,
+        "original_name": student_ans.get("original_name") or "",
+        "public_id": student_ans.get("public_id") or "",
+        "resource_type": student_ans.get("resource_type") or "raw",
+        "format": student_ans.get("format") or "",
+        "bytes": student_ans.get("bytes") or 0,
+    }
+
+
 def grade_attempt(quiz, answers_map, code_grades=None):
-    """Chấm bài. answers_map: {question_id: option_id | text | code | {code, test_result}}.
+    """Chấm bài. answers_map: {question_id: option_id | text | code | {code, test_result} | file meta}.
 
     code_grades (optional): {question_id: {passed, total, results}} — kết quả testcase từ client.
     """
@@ -245,6 +281,31 @@ def grade_attempt(quiz, answers_map, code_grades=None):
         correct_text = ""
         needs_manual_review = False
         points_awarded = 0
+
+        if qtype == "scratch_file":
+            file_meta = _extract_file_answer(student_ans)
+            answered = bool(file_meta)
+            needs_manual_review = True
+            is_correct = None
+            correct_text = "(Giáo viên chấm thủ công — xem file Scratch)"
+            chosen_text = (file_meta or {}).get("original_name") or ((file_meta or {}).get("url") or "")
+            if answered:
+                pending_manual += 1
+            details.append({
+                "question_id": qid,
+                "type": qtype,
+                "content": q.get("content"),
+                "image_url": q.get("image_url"),
+                "points": points,
+                "points_awarded": 0,
+                "student_answer": chosen_text,
+                "file": file_meta,
+                "correct_answer": correct_text,
+                "is_correct": is_correct,
+                "answered": answered,
+                "needs_manual_review": needs_manual_review,
+            })
+            continue
 
         if qtype == "python_code":
             chosen_text, embedded = _extract_code_answer(student_ans)

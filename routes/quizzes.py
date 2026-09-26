@@ -7,9 +7,10 @@ from flask import Blueprint, current_app, jsonify, request, send_file
 from flask_jwt_extended import get_jwt, jwt_required, verify_jwt_in_request
 from openpyxl import Workbook
 from openpyxl.styles import Alignment, Font, PatternFill
+from werkzeug.utils import secure_filename
 
 from database import col, parse_oid
-from services.cloudinary_service import upload_image_file
+from services.cloudinary_service import upload_image_file, upload_submission_file
 from services.quiz_service import (
     attempt_to_dict,
     generate_quiz_slug,
@@ -221,6 +222,30 @@ def admin_delete_quiz(quiz_id):
     return jsonify({"message": "Đã xóa bài kiểm tra và các bài làm liên quan"})
 
 
+@quizzes_bp.route("/upload-answer-file", methods=["POST"])
+def upload_answer_file():
+    """Học sinh upload file đáp án (thường .sb3) trong lúc làm bài."""
+    f = request.files.get("file")
+    if not f or not f.filename:
+        return jsonify({"message": "Chưa chọn file"}), 400
+
+    name = (request.form.get("student_name") or "hoc_sinh").strip()
+    phone = (request.form.get("phone") or "quiz").strip().replace(" ", "") or "quiz"
+    filename = secure_filename(f.filename) or f.filename
+    ext = filename.rsplit(".", 1)[-1].lower() if "." in filename else ""
+    allowed = current_app.config.get("ALLOWED_SUBMISSION_EXTENSIONS") or {"sb3", "sb2"}
+    if ext not in allowed:
+        return jsonify({
+            "message": f"File không được hỗ trợ. Cho phép: {', '.join(sorted(allowed))}",
+        }), 400
+
+    try:
+        meta = upload_submission_file(f, name, phone)
+    except Exception as exc:
+        return jsonify({"message": f"Upload thất bại: {exc}"}), 500
+    return jsonify(meta)
+
+
 @quizzes_bp.route("/admin/upload-image", methods=["POST"])
 @jwt_required()
 def admin_upload_image():
@@ -273,7 +298,7 @@ def admin_delete_attempt(attempt_id):
 @quizzes_bp.route("/admin/attempts/<attempt_id>/grade-code", methods=["POST"])
 @jwt_required()
 def admin_grade_code(attempt_id):
-    """Chấm thủ công câu python_code: { question_id, points_awarded }."""
+    """Chấm thủ công câu python_code / scratch_file: { question_id, points_awarded }."""
     if not _admin_required():
         return jsonify({"message": "Không có quyền truy cập"}), 403
     doc = col("quiz_attempts").find_one({"_id": parse_oid(attempt_id)})
@@ -291,8 +316,8 @@ def admin_grade_code(attempt_id):
     for d in details:
         if str(d.get("question_id")) != qid:
             continue
-        if d.get("type") != "python_code":
-            return jsonify({"message": "Chỉ chấm được câu Python tự luận"}), 400
+        if d.get("type") not in ("python_code", "scratch_file"):
+            return jsonify({"message": "Chỉ chấm được câu tự luận / nộp file Scratch"}), 400
         max_pts = int(d.get("points") or 0)
         awarded = max(0, min(awarded, max_pts))
         d["points_awarded"] = awarded

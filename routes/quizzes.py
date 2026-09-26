@@ -6,7 +6,7 @@ from io import BytesIO
 from flask import Blueprint, current_app, jsonify, request, send_file
 from flask_jwt_extended import get_jwt, jwt_required, verify_jwt_in_request
 from openpyxl import Workbook
-from openpyxl.styles import Alignment, Font, PatternFill
+from openpyxl.styles import Font, PatternFill
 from werkzeug.utils import secure_filename
 
 from database import col, parse_oid, oid_str

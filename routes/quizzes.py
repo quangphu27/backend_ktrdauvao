@@ -295,6 +295,40 @@ def admin_delete_attempt(attempt_id):
     return jsonify({"message": "Đã xóa bài làm"})
 
 
+@quizzes_bp.route("/admin/attempts/<attempt_id>", methods=["PATCH"])
+@jwt_required()
+def admin_update_attempt(attempt_id):
+    """Sửa thông tin học sinh trên bài nộp: { student_name?, student_grade? }."""
+    if not _admin_required():
+        return jsonify({"message": "Không có quyền truy cập"}), 403
+    oid = parse_oid(attempt_id)
+    doc = col("quiz_attempts").find_one({"_id": oid})
+    if not doc:
+        return jsonify({"message": "Không tìm thấy bài làm"}), 404
+
+    data = request.get_json(silent=True) or {}
+    updates = {}
+    if "student_name" in data:
+        name = (data.get("student_name") or "").strip()
+        if not name:
+            return jsonify({"message": "Tên không được để trống"}), 400
+        if len(name) > 120:
+            return jsonify({"message": "Tên quá dài"}), 400
+        updates["student_name"] = name
+    if "student_grade" in data:
+        grade = (data.get("student_grade") or "").strip()
+        if len(grade) > 80:
+            return jsonify({"message": "Tên lớp quá dài"}), 400
+        updates["student_grade"] = grade
+
+    if not updates:
+        return jsonify({"message": "Không có dữ liệu cập nhật"}), 400
+
+    col("quiz_attempts").update_one({"_id": oid}, {"$set": updates})
+    doc = col("quiz_attempts").find_one({"_id": oid})
+    return jsonify(attempt_to_dict(doc, include_details=False))
+
+
 @quizzes_bp.route("/admin/attempts/<attempt_id>/grade-code", methods=["POST"])
 @jwt_required()
 def admin_grade_code(attempt_id):

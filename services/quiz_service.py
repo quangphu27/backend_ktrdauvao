@@ -445,6 +445,13 @@ def attempt_to_dict(doc, include_details=False):
     if not doc:
         return None
     submitted = doc.get("submitted_at")
+    details = doc.get("details") or []
+    mc = [d for d in details if d.get("type") == "mcq"]
+    mc_earned = sum(int(d.get("points_awarded") or 0) for d in mc)
+    mc_max = sum(int(d.get("points") or 0) for d in mc)
+    mc_score_100 = round(mc_earned / mc_max * 100, 1) if mc_max else None
+    scratch = next((d for d in details if d.get("type") == "scratch_file"), None)
+    scratch_url = ((scratch or {}).get("file") or {}).get("url") or ""
     data = {
         "id": str(doc["_id"]),
         "quiz_id": doc.get("quiz_id"),
@@ -459,8 +466,12 @@ def attempt_to_dict(doc, include_details=False):
         "pending_manual": doc.get("pending_manual") or 0,
         "duration_seconds": doc.get("duration_seconds") or 0,
         "submitted_at": submitted.isoformat() + "Z" if isinstance(submitted, datetime) else submitted,
+        "mc_score_100": mc_score_100,
+        "mc_earned": mc_earned,
+        "mc_max": mc_max,
+        "scratch_file_url": scratch_url,
     }
     if include_details:
-        data["details"] = doc.get("details") or []
+        data["details"] = details
         data["answers"] = doc.get("answers") or {}
     return data

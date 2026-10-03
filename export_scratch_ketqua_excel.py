@@ -309,7 +309,7 @@ def write_student_sheet(wb, title, student_name, grade, mc100, earned, max_pts, 
     # ---- Mục lục ----
     _merge_set(
         ws, 4, 1, 4, cols,
-        "MỤC LỤC CÂU HỎI  ·  Bấm vào «Câu …» để xem chi tiết bên dưới",
+        "MỤC LỤC CÂU HỎI",
         Font(bold=True, color="0F4C81", size=12), FILL_TOC, CENTER, THIN,
     )
     ws.row_dimensions[4].height = 24

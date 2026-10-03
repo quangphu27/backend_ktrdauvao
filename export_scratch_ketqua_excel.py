@@ -46,6 +46,23 @@ def normalize_name(s: str) -> str:
     return re.sub(r"\s+", " ", (s or "").strip().lower())
 
 
+def set_internal_sheet_link(cell, sheet_name: str, display: str = "Xem bài làm"):
+    """Link nội bộ sheet — tương thích Excel + WPS.
+
+    Dùng công thức HYPERLINK(#...'!A1) thay vì hyperlink file ngoài
+    (openpyxl string target khiến WPS báo «Không thể mở tệp»).
+    """
+    escaped = (sheet_name or "").replace("'", "''")
+    # Xóa relationship/target cũ nếu có
+    try:
+        cell.hyperlink = None
+    except Exception:
+        pass
+    cell.value = f'=HYPERLINK("#\'{escaped}\'!A1","{display}")'
+    cell.font = LINK_FONT
+    cell.alignment = Alignment(horizontal="center", vertical="center")
+
+
 def sheet_title_for(name: str, used: set) -> str:
     """Tên sheet Excel ≤31 ký tự, không ký tự cấm."""
     base = re.sub(r'[\\/*?:\[\]]', "", (name or "HS").strip()) or "HS"
@@ -323,13 +340,7 @@ def process_class(wb_path, grade_keys, label, attempts, qmap):
         title = sheet_title_for(name, used_titles)
         write_student_sheet(wb, title, name, grade, mc100, earned, max_pts, mc, qmap)
 
-        # Hyperlink nội bộ sang sheet
-        cell = main.cell(row, col_link)
-        cell.value = "Xem bài làm"
-        # openpyxl internal link
-        cell.hyperlink = f"#'{title}'!A1"
-        cell.font = LINK_FONT
-        cell.alignment = Alignment(horizontal="center")
+        set_internal_sheet_link(main.cell(row, col_link), title, "Xem bài làm")
         ok_count += 1
 
     main.column_dimensions[get_column_letter(col_link)].width = 16

@@ -70,8 +70,27 @@ MED = Border(
     bottom=Side(style="medium", color="9DB7D4"),
 )
 CENTER = Alignment(horizontal="center", vertical="center", wrap_text=True)
-LEFT = Alignment(horizontal="left", vertical="center", wrap_text=True)
+LEFT = Alignment(horizontal="left", vertical="top", wrap_text=True)
+LEFT_MID = Alignment(horizontal="left", vertical="center", wrap_text=True)
 LETTERS = "ABCDEFGH"
+
+# 10 cột × width 15 ≈ ~100–110 ký tự/dòng khi merge (chừa lề an toàn)
+CHARS_PER_LINE = 85
+LINE_PX = 16
+
+
+def estimate_row_height(text, chars_per_line=CHARS_PER_LINE, line_h=LINE_PX, min_h=24, pad=12):
+    """Ước lượng chiều cao hàng để không cắt chữ khi wrap."""
+    raw = str(text or "").replace("\r", "")
+    if not raw.strip():
+        return min_h
+    lines = 0
+    for part in raw.split("\n"):
+        chunk = part if part.strip() else " "
+        # ký tự rộng (emoji/tiếng Việt) — ước lượng thêm 10%
+        approx_len = int(len(chunk) * 1.1)
+        lines += max(1, (approx_len + chars_per_line - 1) // chars_per_line)
+    return max(min_h, lines * line_h + pad)
 
 
 def normalize_name(s: str) -> str:
@@ -273,19 +292,19 @@ def write_student_sheet(wb, title, student_name, grade, mc100, earned, max_pts, 
     n = len(mc_details)
     cols = 10  # A–J
 
-    for c, w in enumerate([14, 14, 14, 14, 14, 14, 14, 14, 14, 14], 1):
+    for c, w in enumerate([15, 15, 15, 15, 15, 15, 15, 15, 15, 15], 1):
         ws.column_dimensions[get_column_letter(c)].width = w
     ws.sheet_view.showGridLines = False
 
     # ---- Banner ----
     _merge_set(ws, 1, 1, 1, cols, f"CHI TIẾT BÀI LÀM — {student_name}", FONT_TITLE, FILL_BANNER, CENTER)
-    ws.row_dimensions[1].height = 32
+    ws.row_dimensions[1].height = 34
     _merge_set(
         ws, 2, 1, 2, cols,
         f"Lớp {grade}   ·   Điểm: {format_score(mc100)}",
         FONT_SUB, FILL_BANNER2, CENTER,
     )
-    ws.row_dimensions[2].height = 22
+    ws.row_dimensions[2].height = 24
 
     # ---- Mục lục ----
     _merge_set(
@@ -293,7 +312,7 @@ def write_student_sheet(wb, title, student_name, grade, mc100, earned, max_pts, 
         "MỤC LỤC CÂU HỎI  ·  Bấm vào «Câu …» để xem chi tiết bên dưới",
         Font(bold=True, color="0F4C81", size=12), FILL_TOC, CENTER, THIN,
     )
-    ws.row_dimensions[4].height = 22
+    ws.row_dimensions[4].height = 24
 
     # Tính trước vị trí bắt đầu mỗi thẻ câu (sau mục lục)
     per_row = 10
@@ -301,7 +320,7 @@ def write_student_sheet(wb, title, student_name, grade, mc100, earned, max_pts, 
     toc_start = 5
     detail_start = toc_start + toc_rows + 2  # 1 dòng chú thích màu + 1 trống
 
-    # Mỗi câu: 9 dòng (tiêu đề, đề, 4 đáp án, tóm tắt, spacer, back)
+    # Mỗi câu: 9 dòng cố định — chiều cao từng dòng ước theo nội dung (không cắt chữ)
     ROWS_PER_Q = 9
     q_anchors = {}
     for i in range(n):
@@ -319,14 +338,15 @@ def write_student_sheet(wb, title, student_name, grade, mc100, earned, max_pts, 
         cell.font = FONT_BTN
         cell.border = THIN
         cell.alignment = CENTER
-        ws.row_dimensions[r].height = 22
+        ws.row_dimensions[r].height = 24
 
     legend_row = toc_start + toc_rows
-    _merge_set(
-        ws, legend_row, 1, legend_row, cols,
-        "Chú thích mục lục:  xanh = đúng   ·   đỏ = sai   ·   Bên dưới mỗi câu có đủ đáp án A–D, đáp án đúng và đáp án học sinh chọn",
-        FONT_MUTED, FILL_SOFT, LEFT,
+    legend_txt = (
+        "Chú thích mục lục:  xanh = đúng   ·   đỏ = sai   ·   "
+        "Bên dưới mỗi câu có đủ đáp án A–D, đáp án đúng và đáp án học sinh chọn"
     )
+    _merge_set(ws, legend_row, 1, legend_row, cols, legend_txt, FONT_MUTED, FILL_SOFT, LEFT_MID, THIN)
+    ws.row_dimensions[legend_row].height = estimate_row_height(legend_txt, min_h=28)
 
     # ---- Thẻ chi tiết từng câu ----
     for i, d in enumerate(mc_details):
@@ -335,7 +355,6 @@ def write_student_sheet(wb, title, student_name, grade, mc100, earned, max_pts, 
         qid = str(d.get("question_id") or "")
         qdoc = qmap.get(qid) or {}
         opts = [t for t in option_texts(qdoc) if t] or []
-        # đảm bảo có đủ options nếu detail có đáp án không nằm trong list
         correct = correct_from_question(qdoc, d.get("correct_answer"))
         student = (d.get("student_answer") or "").strip() or "(trống)"
         ok = bool(d.get("is_correct"))
@@ -349,28 +368,31 @@ def write_student_sheet(wb, title, student_name, grade, mc100, earned, max_pts, 
             f"Câu {qnum}",
             Font(bold=True, color="FFFFFF", size=14),
             FILL_BANNER if ok else PatternFill("solid", fgColor="A61B1B"),
-            LEFT,
+            LEFT_MID,
             MED,
         )
+        badge_fill = FILL_BTN_OK if ok else FILL_BTN_BAD
         badge = ws.cell(r0, 8, result_txt)
-        badge.fill = FILL_BTN_OK if ok else FILL_BTN_BAD
+        badge.fill = badge_fill
         badge.font = FONT_BTN
         badge.alignment = CENTER
         badge.border = MED
         ws.merge_cells(start_row=r0, start_column=8, end_row=r0, end_column=9)
+        ws.cell(r0, 9).fill = badge_fill
+        ws.cell(r0, 9).border = MED
         back = ws.cell(r0, 10)
         set_internal_sheet_link(back, title, "↑ Mục lục", "A4")
         back.fill = FILL_BANNER2
         back.font = FONT_BTN
         back.border = MED
-        ws.row_dimensions[r0].height = 26
+        back.alignment = CENTER
+        ws.row_dimensions[r0].height = 28
 
-        # Đề bài
+        # Đề bài — cao đủ để wrap
         _merge_set(ws, r0 + 1, 1, r0 + 1, cols, content, FONT_Q, card_fill, LEFT, THIN)
-        ws.row_dimensions[r0 + 1].height = max(36, 18 * (1 + content.count("\n")))
+        ws.row_dimensions[r0 + 1].height = estimate_row_height(content, min_h=40, pad=14)
 
-        # 4 đáp án A–D (hoặc nhiều hơn tối đa 4 dòng cố định trong card)
-        # Nếu thiếu option, vẫn hiện 4 dòng
+        # 4 đáp án A–D
         display_opts = (opts + ["", "", "", ""])[:4]
         for oi, opt in enumerate(display_opts):
             rr = r0 + 2 + oi
@@ -392,8 +414,9 @@ def write_student_sheet(wb, title, student_name, grade, mc100, earned, max_pts, 
                 font = FONT_BODY
             if is_student_opt and is_correct_opt:
                 suffix = "   ← Học sinh chọn (đúng)"
-            _merge_set(ws, rr, 1, rr, cols, label + suffix, font, fill, LEFT, THIN)
-            ws.row_dimensions[rr].height = 20
+            full = label + suffix
+            _merge_set(ws, rr, 1, rr, cols, full, font, fill, LEFT, THIN)
+            ws.row_dimensions[rr].height = estimate_row_height(full, min_h=26, pad=10)
 
         # Tóm tắt
         summary = f"Đáp án đúng: {correct or '—'}     |     Học sinh chọn: {student}"
@@ -405,22 +428,21 @@ def write_student_sheet(wb, title, student_name, grade, mc100, earned, max_pts, 
             LEFT,
             THIN,
         )
-        ws.row_dimensions[r0 + 6].height = 22
+        ws.row_dimensions[r0 + 6].height = estimate_row_height(summary, min_h=28, pad=10)
 
         # Spacer
         _paint(ws, r0 + 7, 1, cols, FILL_WHITE)
-        ws.row_dimensions[r0 + 7].height = 10
-        # hàng dự phòng trong ROWS_PER_Q
+        ws.row_dimensions[r0 + 7].height = 12
         _paint(ws, r0 + 8, 1, cols, FILL_WHITE)
-        ws.row_dimensions[r0 + 8].height = 6
+        ws.row_dimensions[r0 + 8].height = 8
 
-    # Nút về phiếu (góc trên không — thêm dòng cuối)
     end_row = detail_start + n * ROWS_PER_Q + 1
     _merge_set(
         ws, end_row, 1, end_row, cols,
         "Hết danh sách câu hỏi  ·  Bấm «↑ Mục lục» trên mỗi câu để quay lại chọn câu khác",
         FONT_MUTED, FILL_TOC, CENTER,
     )
+    ws.row_dimensions[end_row].height = 24
 
     ws.freeze_panes = "A5"
     ws.print_title_rows = "1:4"

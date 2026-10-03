@@ -271,8 +271,6 @@ def write_student_sheet(wb, title, student_name, grade, mc100, earned, max_pts, 
     """Sheet đẹp: mục lục Câu 1..N (bấm để nhảy) + thẻ chi tiết từng câu."""
     ws = wb.create_sheet(title)
     n = len(mc_details)
-    correct_n = sum(1 for d in mc_details if d.get("is_correct"))
-    wrong_n = n - correct_n
     cols = 10  # A–J
 
     for c, w in enumerate([14, 14, 14, 14, 14, 14, 14, 14, 14, 14], 1):
@@ -284,7 +282,7 @@ def write_student_sheet(wb, title, student_name, grade, mc100, earned, max_pts, 
     ws.row_dimensions[1].height = 32
     _merge_set(
         ws, 2, 1, 2, cols,
-        f"Lớp {grade}   ·   Điểm trắc nghiệm: {format_score(mc100)}   ·   Raw {earned}/{max_pts}   ·   Đúng {correct_n}/{n}   ·   Sai {wrong_n}",
+        f"Lớp {grade}   ·   Điểm: {format_score(mc100)}",
         FONT_SUB, FILL_BANNER2, CENTER,
     )
     ws.row_dimensions[2].height = 22

@@ -449,9 +449,20 @@ def write_student_sheet(wb, title, student_name, grade, mc100, earned, max_pts, 
     return ws
 
 
+def find_roster_sheet(wb):
+    """Sheet phiếu nhận xét (có cột Họ và tên) — không phụ thuộc wb.active."""
+    for ws in wb.worksheets:
+        try:
+            read_roster(ws)
+            return ws
+        except Exception:
+            continue
+    raise RuntimeError("Không tìm thấy sheet phiếu nhận xét trong file")
+
+
 def process_class(wb_path, grade_keys, label, attempts, qmap):
     wb = load_workbook(wb_path)
-    main = wb.active
+    main = find_roster_sheet(wb)
     main_title = main.title
     roster = read_roster(main)
     header_row = roster["header_row"]

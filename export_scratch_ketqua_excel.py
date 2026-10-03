@@ -522,13 +522,10 @@ def process_class(wb_path, grade_keys, label, attempts, qmap):
 
     main.column_dimensions[get_column_letter(col_link)].width = 16
 
-    # Cập nhật ghi chú: điểm trên phiếu = trắc nghiệm
     for r in range(1, (main.max_row or 1) + 1):
         v = main.cell(r, 1).value
-        if isinstance(v, str) and v.startswith("Ghi chú:"):
+        if isinstance(v, str) and (v.startswith("Ghi chú:") or "Phụ huynh vui lòng liên hệ" in v):
             main.cell(r, 1).value = (
-                "Ghi chú: Điểm trên phiếu là điểm trắc nghiệm (thang 100). "
-                "Bấm «Xem bài làm» để mở sheet chi tiết từng câu (đáp án đúng / đáp án học sinh chọn). "
                 "Phụ huynh vui lòng liên hệ giáo viên nếu cần trao đổi thêm về lộ trình học tập của em."
             )
             break

@@ -8,6 +8,7 @@ from .quizzes import quizzes_bp
 from .classrooms import classrooms_bp
 from .games import games_bp
 from .reports import reports_bp
+from .live import live_bp
 
 __all__ = [
     "auth_bp",
@@ -20,4 +21,5 @@ __all__ = [
     "classrooms_bp",
     "games_bp",
     "reports_bp",
+    "live_bp",
 ]

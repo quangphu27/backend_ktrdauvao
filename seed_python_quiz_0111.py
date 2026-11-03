@@ -24,7 +24,7 @@ def build_questions():
             "Nhập chiều dài a và chiều rộng b của một hình chữ nhật. "
             "Tính độ dài đường chéo của hình chữ nhật.\n\n"
             "Công thức:\n"
-            "d = √(a² + b²)"
+            r"$$d = \sqrt{a^{2} + b^{2}}$$"
         ),
         "points": 20,
         "allow_run": True,
@@ -49,7 +49,7 @@ def build_questions():
             "A(x₁, y₁) và B(x₂, y₂).\n\n"
             "Nhập tọa độ của hai thành phố. Tính khoảng cách giữa chúng.\n\n"
             "Công thức:\n"
-            "d = √((x₂ − x₁)² + (y₂ − y₁)²)"
+            r"$$d = \sqrt{(x_{2} - x_{1})^{2} + (y_{2} - y_{1})^{2}}$$"
         ),
         "points": 20,
         "allow_run": True,
@@ -72,7 +72,8 @@ def build_questions():
             "Câu 3 — SỐ CHÍNH PHƯƠNG\n\n"
             "Một số nguyên dương được gọi là số chính phương nếu nó bằng bình phương của một số nguyên.\n\n"
             "Nhập số nguyên dương n. Kiểm tra và thông báo n có phải số chính phương hay không.\n\n"
-            "n là số chính phương nếu tồn tại số nguyên k sao cho n = k²."
+            "n là số chính phương nếu tồn tại số nguyên k sao cho "
+            r"$n = k^{2}$."
         ),
         "points": 20,
         "allow_run": True,
@@ -95,7 +96,7 @@ def build_questions():
         "content": (
             "Câu 4 — TỔNG GIAI THỪA\n\n"
             "Nhập số nguyên dương n. Tính tổng:\n"
-            "S = 1! + 2! + 3! + ⋯ + n!"
+            r"$$S = 1! + 2! + 3! + \cdots + n!$$"
         ),
         "points": 20,
         "allow_run": True,
@@ -117,7 +118,7 @@ def build_questions():
         "content": (
             "Câu 5 — BIỂU THỨC KẾT HỢP (CỘNG, TRỪ, PHÂN SỐ)\n\n"
             "Cho số thực x và số nguyên không âm n. Tính:\n"
-            "K = (√|x| + n!) / (|x|ⁿ + 1) − n! / (n + 1)"
+            r"$$K = \dfrac{\sqrt{|x|} + n!}{|x|^{n} + 1} - \dfrac{n!}{n + 1}$$"
         ),
         "points": 20,
         "allow_run": True,

@@ -56,14 +56,46 @@ def create_app():
 
     @app.route("/api/health/db")
     def health_db():
-        from database import ping_mongo
+        from database import mongo_uri_diagnostics, ping_mongo
+
+        diag = mongo_uri_diagnostics(app.config.get("MONGODB_URI", ""))
+        diag["db_name"] = app.config.get("MONGODB_DB_NAME")
+
+        # DNS SRV từ máy Render (hay lỗi khi thiếu dnspython / mạng DNS)
+        dns_info = {"ok": False, "error": None, "targets": []}
+        host = diag.get("host") or ""
+        if host and "mongodb.net" in host:
+            try:
+                import dns.resolver
+
+                qname = host.split("/")[0]
+                if qname.startswith("cluster"):
+                    qname = f"_mongodb._tcp.{qname}"
+                answers = dns.resolver.resolve(qname, "SRV")
+                dns_info["ok"] = True
+                dns_info["targets"] = [str(r.target).rstrip(".") for r in answers]
+            except Exception as e:
+                dns_info["error"] = f"{type(e).__name__}: {e}"
+
         ok, err = ping_mongo()
         if ok:
-            return {"status": "ok", "mongodb": "connected"}
+            return {
+                "status": "ok",
+                "mongodb": "connected",
+                "uri": diag,
+                "dns": dns_info,
+            }
         return jsonify({
             "status": "error",
             "mongodb": "disconnected",
             "message": err,
+            "uri": diag,
+            "dns": dns_info,
+            "hint": (
+                "Local OK nhưng Render lỗi thường do MONGODB_URI trên Render sai/thiếu. "
+                "Vào Render → Environment → dán lại URI giống file .env local, rồi Manual Deploy. "
+                "Atlas Network Access cần 0.0.0.0/0 Active."
+            ),
         }), 503
 
     return app

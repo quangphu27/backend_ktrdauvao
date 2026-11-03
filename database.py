@@ -5,15 +5,47 @@ from pymongo.errors import PyMongoError
 mongo_client = None
 
 
+def mongo_uri_diagnostics(uri: str) -> dict:
+    """Thông tin an toàn để debug kết nối (không lộ mật khẩu)."""
+    uri = (uri or "").strip()
+    info = {
+        "configured": bool(uri),
+        "has_placeholder": ("<db_password>" in uri) or ("YOUR_PASSWORD" in uri),
+        "scheme": None,
+        "user": None,
+        "host": None,
+        "db_in_path": None,
+    }
+    if not uri:
+        return info
+    try:
+        # mongodb+srv://user:pass@host/db?...
+        no_scheme = uri.split("://", 1)[-1]
+        if "@" in no_scheme:
+            creds, after = no_scheme.rsplit("@", 1)
+            info["user"] = creds.split(":", 1)[0] if creds else None
+            host_part = after.split("?", 1)[0]
+            host = host_part.split("/", 1)[0]
+            db = host_part.split("/", 1)[1] if "/" in host_part else None
+            info["host"] = host
+            info["db_in_path"] = db or None
+        info["scheme"] = uri.split("://", 1)[0]
+    except Exception:
+        pass
+    return info
+
+
 def init_mongo(app):
     global mongo_client
     uri = app.config["MONGODB_URI"]
     mongo_client = MongoClient(
         uri,
-        serverSelectionTimeoutMS=15000,
-        connectTimeoutMS=10000,
-        socketTimeoutMS=20000,
+        serverSelectionTimeoutMS=20000,
+        connectTimeoutMS=20000,
+        socketTimeoutMS=30000,
         retryWrites=True,
+        tls=True,
+        tlsAllowInvalidCertificates=False,
     )
     app.teardown_appcontext(close_db)
 

@@ -48,7 +48,7 @@ def text(content, correct_answer, aliases=None, points=1):
     }
 
 
-# 19 câu mới (khó / có bẫy) — đã bỏ các câu phát tin (đợi / cờ xanh / điền tên khối)
+# 18 câu mới (khó / có bẫy)
 NEW_QUESTIONS = [
     # --- Vẽ hình vuông / tròn ---
     mcq(
@@ -187,17 +187,6 @@ NEW_QUESTIONS = [
         explanation="BẪY: nhầm «đặt thành 1» với «thay đổi đi 1» → nhiều bạn chọn 8.",
     ),
     mcq(
-        "Muốn điểm cộng đúng 1 mỗi khi chạm sao, KHÔNG được dùng cách nào sau đây?",
-        [
-            "Đặt «điểm» thành 1  (mỗi lần chạm)",
-            "Thay đổi «điểm» đi 1",
-            "Thay đổi «điểm» đi (1)",
-            "Đặt «điểm» thành «điểm» + 1",
-        ],
-        0,
-        explanation="«Đặt thành 1» reset điểm về 1, không cộng dồn.",
-    ),
-    mcq(
         "Biến «mạng» tạo «Cho tất cả nhân vật». Nhân vật A đặt mạng thành 3. Nhân vật B đọc mạng được giá trị nào?",
         [
             "3 (cùng một biến dùng chung)",
@@ -317,9 +306,9 @@ def build_all_questions(existing_eight):
         preserved.append(raw)
 
     combined = preserved + NEW_QUESTIONS + SCRATCH_LAB_QUESTIONS
-    assert len(NEW_QUESTIONS) == 19, len(NEW_QUESTIONS)
+    assert len(NEW_QUESTIONS) == 18, len(NEW_QUESTIONS)
     assert len(SCRATCH_LAB_QUESTIONS) == 5, len(SCRATCH_LAB_QUESTIONS)
-    assert len(combined) == 32, len(combined)
+    assert len(combined) == 31, len(combined)
 
     questions = sanitize_questions(combined)
     for i, q in enumerate(questions):
@@ -346,7 +335,7 @@ def main():
         questions = build_all_questions(eight)
 
         description = (
-            "Kiểm tra giữa khóa Scratch — 27 câu TN/TL + 5 bài Scratch làm trực tiếp trên web "
+            "Kiểm tra giữa khóa Scratch — 26 câu TN/TL + 5 bài Scratch làm trực tiếp trên web "
             "(tròn, vuông, mèo bắt chuột, tô màu, piano) có Kiểm tra đáp án. Thời gian 60 phút."
         )
         now = datetime.utcnow()

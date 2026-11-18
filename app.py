@@ -37,6 +37,18 @@ def create_app():
     init_mongo(app)
     jwt.init_app(app)
 
+    @jwt.unauthorized_loader
+    def _jwt_unauthorized(reason):
+        return {"message": "Thiếu hoặc không hợp lệ token đăng nhập", "msg": reason}, 401
+
+    @jwt.invalid_token_loader
+    def _jwt_invalid(reason):
+        return {"message": "Token không hợp lệ. Vui lòng đăng nhập lại.", "msg": reason}, 401
+
+    @jwt.expired_token_loader
+    def _jwt_expired(_jwt_header, _jwt_payload):
+        return {"message": "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.", "msg": "token expired"}, 401
+
     app.register_blueprint(auth_bp)
     app.register_blueprint(courses_bp)
     app.register_blueprint(questions_bp)

@@ -233,46 +233,37 @@ SCRATCH_LAB_QUESTIONS = [
     {
         "type": "scratch_blocks",
         "lab_slug": "ve-hinh-tron",
-        "content": (
-            "Làm trên web: Vẽ hình tròn bán kính 100 — lặp 360 lần, "
-            "di chuyển 2*3.14*100/360, xoay phải 1 độ (có đặt bút xuống)."
-        ),
+        "content": "Làm trên web: Vẽ hình tròn bán kính 100. Sắp xếp khối đã cho và điền số.",
         "points": 2,
-        "hint": "Dùng editor Scratch bên phải · Kiểm tra đáp án trước khi nộp bài",
+        "hint": "↑↓ sắp xếp · ↳ nhét vào khối Lặp · Kiểm tra đáp án trước khi nộp",
     },
     {
         "type": "scratch_blocks",
         "lab_slug": "ve-hinh-vuong",
-        "content": "Làm trên web: Vẽ hình vuông cạnh 100 (đặt bút → lặp 4: di chuyển 100, xoay phải 90).",
+        "content": "Làm trên web: Vẽ hình vuông cạnh 100. Sắp xếp khối đã cho và điền số.",
         "points": 2,
-        "hint": "4 cạnh · góc 90°",
+        "hint": "↑↓ sắp xếp · ↳ nhét vào khối Lặp · Kiểm tra đáp án",
     },
     {
         "type": "scratch_blocks",
         "lab_slug": "meo-bat-chuot",
-        "content": (
-            "Làm trên web: Mèo bắt chuột — chuột đi tới con trỏ; "
-            "mèo hướng về con trỏ và di chuyển 3 bước (trong lặp lại mãi)."
-        ),
+        "content": "Làm trên web: Mèo bắt chuột (hai nhân vật). Sắp xếp khối đã cho cho từng nhân vật.",
         "points": 3,
-        "hint": "Hai nhân vật Chuột và Mèo",
+        "hint": "Đổi tab Chuột / Mèo · nhét khối vào «Lặp lại mãi»",
     },
     {
         "type": "scratch_blocks",
         "lab_slug": "to-mau-hinh-tron",
-        "content": (
-            "Làm trên web: Tô màu hình tròn — đặt màu bút đỏ, cỡ 20, đặt bút xuống, "
-            "lặp 360: di chuyển 2*3.14*100/360, xoay phải 1°."
-        ),
+        "content": "Làm trên web: Tô màu hình tròn. Sắp xếp khối đã cho và điền số / màu.",
         "points": 2,
-        "hint": "Đặt màu + cỡ bút trước khi vẽ",
+        "hint": "↑↓ sắp xếp · ↳ nhét vào khối Lặp · Kiểm tra đáp án",
     },
     {
         "type": "scratch_blocks",
         "lab_slug": "dan-piano",
-        "content": "Làm trên web: Đàn piano — phím 1→C, 2→D, 3→E, 4→F, 5→G.",
+        "content": "Làm trên web: Đàn piano 5 phím. Điền nốt cho từng phím 1–5.",
         "points": 3,
-        "hint": "Năm script «Khi nhấn phím»",
+        "hint": "Chọn từng phím · điền nốt vào khối Phát nốt",
     },
 ]
 

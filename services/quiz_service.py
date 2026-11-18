@@ -333,7 +333,7 @@ def grade_attempt(quiz, answers_map, code_grades=None):
 
         if qtype == "scratch_blocks":
             from data.scratch_labs_catalog import get_lab
-            from services.scratch_grade_service import grade_project
+            from services.scratch_grade_service import grade_project, project_has_filled_fields
 
             project = None
             if isinstance(student_ans, dict):
@@ -341,13 +341,18 @@ def grade_attempt(quiz, answers_map, code_grades=None):
                     project = student_ans
                 else:
                     project = student_ans.get("project")
-            answered = bool(project)
             lab = get_lab(q.get("lab_slug") or "")
-            if answered and lab:
+            filled = bool(project) and project_has_filled_fields(project)
+            answered = filled
+            if project and lab:
                 result = grade_project(project, lab.get("solution"))
                 is_correct = bool(result.get("correct"))
                 correct_text = result.get("message") or ""
-                chosen_text = "Đã nộp dự án Scratch (khối lệnh)"
+                chosen_text = (
+                    "Đã điền đủ và khớp đáp án"
+                    if is_correct
+                    else ("Đã điền nhưng chưa đúng" if filled else "Chưa điền đủ số liệu")
+                )
                 if is_correct:
                     points_awarded = points
                     earned += points
@@ -355,12 +360,12 @@ def grade_attempt(quiz, answers_map, code_grades=None):
                     points_awarded = 0
                     mismatches = result.get("mismatches") or []
                     if mismatches:
-                        correct_text = correct_text + " | " + "; ".join(mismatches[:3])
+                        correct_text = correct_text + " | " + "; ".join(mismatches[:4])
             else:
                 is_correct = False
                 points_awarded = 0
                 chosen_text = ""
-                correct_text = "Cần hoàn thành khối lệnh trên editor"
+                correct_text = "Cần điền đủ số / nốt trên editor Scratch rồi nộp"
             details.append({
                 "question_id": qid,
                 "type": qtype,
@@ -374,7 +379,7 @@ def grade_attempt(quiz, answers_map, code_grades=None):
                 "answered": answered,
                 "needs_manual_review": False,
                 "lab_slug": q.get("lab_slug"),
-                "project": project if answered else None,
+                "project": project if project else None,
             })
             continue
 

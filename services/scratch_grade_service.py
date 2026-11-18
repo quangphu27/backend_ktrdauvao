@@ -52,11 +52,33 @@ def _eval_expr(raw: Any):
     return s
 
 
+def _is_blank(raw: Any) -> bool:
+    if raw is None:
+        return True
+    if isinstance(raw, str) and not raw.strip():
+        return True
+    return False
+
+
 def _expr_equal(a: Any, b: Any) -> bool:
+    """So khớp giá trị: trống ≠ đáp án; số chấp nhận sai số nhỏ; chuỗi sau chuẩn hóa."""
+    if _is_blank(a) and not _is_blank(b):
+        return False
+    if _is_blank(b) and not _is_blank(a):
+        return False
+    if _is_blank(a) and _is_blank(b):
+        return True
     ea, eb = _eval_expr(a), _eval_expr(b)
     if isinstance(ea, float) and isinstance(eb, float):
         return abs(ea - eb) < 1e-3
     return str(ea) == str(eb)
+
+
+def _fmt_val(raw: Any) -> str:
+    if _is_blank(raw):
+        return "(trống)"
+    ev = _eval_expr(raw)
+    return str(ev)
 
 
 # Map alias → opcode chuẩn
@@ -231,46 +253,70 @@ def normalize_project(project: Any) -> list:
     return scripts
 
 
-def _blocks_equal(a: dict, b: dict) -> bool:
-    if a.get("op") != b.get("op"):
+def _color_equal(a: Any, b: Any) -> bool:
+    ca = _norm_expr(a)
+    cb = _norm_expr(b)
+    if not ca and not cb:
+        return True
+    if not ca or not cb:
         return False
-    op = a["op"]
+    aliases = {
+        "red": {"red", "đỏ", "do", "#ff0000", "#f00", "ff0000"},
+        "blue": {"blue", "xanh", "xanhduong", "#0000ff"},
+        "green": {"green", "xanhlá", "xanhla", "#00ff00"},
+    }
+    for group in aliases.values():
+        if ca in group and cb in group:
+            return True
+    return ca == cb or _expr_equal(a, b)
+
+
+def _blocks_equal(a: dict, b: dict) -> bool:
+    return not _diff_blocks(a, b, "")
+
+
+def _diff_blocks(stu: dict, exp: dict, path: str) -> list[str]:
+    """So từng khối/ô số; trả về danh sách lệch (rỗng = khớp)."""
+    errs: list[str] = []
+    if stu.get("op") != exp.get("op"):
+        return [f"{path}: sai khối (em «{describe_block(stu)}», đáp án «{describe_block(exp)}»)"]
+    op = exp["op"]
+    label = describe_block(exp)
+
+    def check(field_label: str, got: Any, want: Any, equal_fn=None):
+        ok = (equal_fn or _expr_equal)(got, want)
+        if not ok:
+            errs.append(
+                f"{path}{label} — {field_label}: em điền {_fmt_val(got)}, đáp án {_fmt_val(want)}"
+            )
+
     if op == "move":
-        return _expr_equal(a.get("steps"), b.get("steps"))
-    if op in ("turn_right", "turn_left"):
-        return _expr_equal(a.get("degrees"), b.get("degrees"))
-    if op == "repeat":
-        return _expr_equal(a.get("times"), b.get("times")) and _script_equal(a.get("body"), b.get("body"))
-    if op == "forever":
-        return _script_equal(a.get("body"), b.get("body"))
-    if op == "pen_color":
-        ca = _norm_expr(a.get("color"))
-        cb = _norm_expr(b.get("color"))
-        aliases = {
-            "red": {"red", "đỏ", "do", "#ff0000", "#f00", "ff0000"},
-            "blue": {"blue", "xanh", "xanhduong", "#0000ff"},
-            "green": {"green", "xanhlá", "xanhla", "#00ff00"},
-        }
-        for group in aliases.values():
-            if ca in group and cb in group:
-                return True
-        return ca == cb or _expr_equal(a.get("color"), b.get("color"))
-    if op == "pen_size":
-        return _expr_equal(a.get("size"), b.get("size"))
-    if op == "goto_xy":
-        return _expr_equal(a.get("x"), b.get("x")) and _expr_equal(a.get("y"), b.get("y"))
-    if op in ("play_sound", "play_note"):
-        return _norm_expr(a.get("sound")) == _norm_expr(b.get("sound"))
-    if op == "when_key":
-        return True  # key so ở cấp script
-    if op in ("change_x", "change_y", "set_x", "set_y"):
-        return _expr_equal(a.get("value"), b.get("value"))
-    if op == "point_towards":
-        ta = _norm_expr(a.get("target") or "mouse")
-        tb = _norm_expr(b.get("target") or "mouse")
-        return ta in ("mouse", "con_tro", "pointer", "_mouse_") or ta == tb
-    # Ops không tham số
-    return True
+        check("bước", stu.get("steps"), exp.get("steps"))
+    elif op in ("turn_right", "turn_left"):
+        check("độ", stu.get("degrees"), exp.get("degrees"))
+    elif op == "repeat":
+        check("số lần", stu.get("times"), exp.get("times"))
+        errs.extend(_diff_script(stu.get("body"), exp.get("body"), path + "lặp›"))
+    elif op == "forever":
+        errs.extend(_diff_script(stu.get("body"), exp.get("body"), path + "mãi›"))
+    elif op == "pen_color":
+        check("màu", stu.get("color"), exp.get("color"), _color_equal)
+    elif op == "pen_size":
+        check("cỡ", stu.get("size"), exp.get("size"))
+    elif op == "goto_xy":
+        check("x", stu.get("x"), exp.get("x"))
+        check("y", stu.get("y"), exp.get("y"))
+    elif op in ("play_sound", "play_note"):
+        check("nốt/âm", stu.get("sound"), exp.get("sound"))
+    elif op in ("change_x", "change_y", "set_x", "set_y"):
+        check("giá trị", stu.get("value"), exp.get("value"))
+    elif op == "point_towards":
+        ta = _norm_expr(stu.get("target") or "mouse")
+        tb = _norm_expr(exp.get("target") or "mouse")
+        if not (ta in ("mouse", "con_tro", "pointer", "_mouse_") or ta == tb):
+            errs.append(f"{path}{label}: sai đích")
+    # Ops không tham số (pen_down, goto_mouse, point_mouse…): khớp opcode là đủ
+    return errs
 
 
 def _strip_optional(blocks: list | None) -> list:
@@ -279,26 +325,34 @@ def _strip_optional(blocks: list | None) -> list:
     return [b for b in (blocks or []) if b.get("op") not in skip]
 
 
-def _script_equal(a: list | None, b: list | None) -> bool:
+def _diff_script(a: list | None, b: list | None, path: str = "") -> list[str]:
     aa = _strip_optional(a)
     bb = _strip_optional(b)
     if len(aa) != len(bb):
-        return False
-    return all(_blocks_equal(x, y) for x, y in zip(aa, bb))
+        return [f"{path}: số khối khác (em {len(aa)}, đáp án {len(bb)})"]
+    errs: list[str] = []
+    for i, (x, y) in enumerate(zip(aa, bb)):
+        errs.extend(_diff_blocks(x, y, f"{path}[{i}] "))
+    return errs
+
+
+def _script_equal(a: list | None, b: list | None) -> bool:
+    return not _diff_script(a, b)
 
 
 def _script_match(student: dict, expected: dict) -> bool:
+    return not _diff_script_match(student, expected)
+
+
+def _diff_script_match(student: dict, expected: dict) -> list[str]:
     if student.get("hat") != expected.get("hat"):
-        return False
+        return [f"Sai sự kiện bắt đầu (em {student.get('hat')}, đáp án {expected.get('hat')})"]
     if expected.get("hat") == "when_key":
         if (student.get("key") or "") != (expected.get("key") or ""):
-            return False
-    # Sprite name: nếu expected có ràng buộc cụ thể (không phải *) thì so
-    exp_sp = expected.get("sprite") or "*"
-    if exp_sp not in ("*", "") and student.get("sprite") != exp_sp:
-        # Cho phép khớp nếu cùng vai trò — nới: bỏ qua tên sprite trừ khi bắt buộc
-        pass
-    return _script_equal(student.get("body"), expected.get("body"))
+            return [
+                f"Sai phím (em {student.get('key') or '(trống)'}, đáp án {expected.get('key')})"
+            ]
+    return _diff_script(student.get("body"), expected.get("body"), "")
 
 
 def describe_block(b: dict) -> str:
@@ -334,10 +388,42 @@ def describe_block(b: dict) -> str:
     return op or "?"
 
 
+def project_has_filled_fields(project: Any) -> bool:
+    """True nếu mọi ô số/trường trong project đều đã điền (không trống)."""
+    scripts = normalize_project(project)
+    if not scripts:
+        return False
+
+    def walk(blocks: list) -> bool:
+        for b in blocks or []:
+            op = b.get("op")
+            if op == "move" and _is_blank(b.get("steps")):
+                return False
+            if op in ("turn_right", "turn_left") and _is_blank(b.get("degrees")):
+                return False
+            if op == "repeat":
+                if _is_blank(b.get("times")):
+                    return False
+                if not walk(b.get("body") or []):
+                    return False
+            elif op == "forever":
+                if not walk(b.get("body") or []):
+                    return False
+            elif op == "pen_color" and _is_blank(b.get("color")):
+                return False
+            elif op == "pen_size" and _is_blank(b.get("size")):
+                return False
+            elif op in ("play_note", "play_sound") and _is_blank(b.get("sound")):
+                return False
+        return True
+
+    return all(walk(s.get("body") or []) for s in scripts)
+
+
 def grade_project(student_project: Any, expected_project: Any) -> dict:
     """
-    So khớp: mọi script trong expected phải có script student tương ứng.
-    Student có thể có script thừa (bỏ qua).
+    Chấm chặt: mỗi script đáp án phải khớp cấu trúc + từng ô số/trường.
+    Ô trống hoặc sai giá trị → không đúng. Script thừa của HS bị bỏ qua.
     """
     stu = normalize_project(student_project)
     exp = normalize_project(expected_project)
@@ -345,30 +431,64 @@ def grade_project(student_project: Any, expected_project: Any) -> dict:
     if not exp:
         return {"correct": False, "message": "Đáp án mẫu trống", "mismatches": ["missing_solution"]}
 
-    mismatches = []
+    if not stu:
+        return {
+            "correct": False,
+            "message": "Chưa làm bài Scratch.",
+            "mismatches": ["empty_project"],
+            "student_scripts": 0,
+            "expected_scripts": len(exp),
+        }
+
+    mismatches: list[str] = []
     used = set()
-    for i, e in enumerate(exp):
-        found = False
+    for e in exp:
+        label = e.get("hat")
+        if e.get("hat") == "when_key":
+            label = f"khi nhấn phím {e.get('key')}"
+        elif e.get("hat") == "when_flag":
+            label = "khi bấm cờ xanh"
+
+        best_errs = None
+        best_j = None
         for j, s in enumerate(stu):
             if j in used:
                 continue
-            if _script_match(s, e):
-                used.add(j)
-                found = True
+            # Ưu tiên cùng hat (+ key)
+            if s.get("hat") != e.get("hat"):
+                continue
+            if e.get("hat") == "when_key" and (s.get("key") or "") != (e.get("key") or ""):
+                continue
+            errs = _diff_script_match(s, e)
+            if not errs:
+                best_errs = []
+                best_j = j
                 break
-        if not found:
-            label = e.get("hat")
-            if e.get("hat") == "when_key":
-                label = f"khi nhấn phím {e.get('key')}"
-            elif e.get("hat") == "when_flag":
-                label = "khi bấm cờ xanh"
+            if best_errs is None or len(errs) < len(best_errs):
+                best_errs = errs
+                best_j = j
+
+        if best_errs is not None and len(best_errs) == 0 and best_j is not None:
+            used.add(best_j)
+            continue
+
+        if best_errs:
+            for err in best_errs[:4]:
+                mismatches.append(f"«{label}» {err}")
+            if best_j is not None:
+                used.add(best_j)
+        else:
             body_desc = " → ".join(describe_block(b) for b in (e.get("body") or [])[:6])
-            mismatches.append(f"Thiếu hoặc sai script «{label}»: {body_desc}")
+            mismatches.append(f"Thiếu script «{label}»: {body_desc}")
 
     correct = len(mismatches) == 0
     return {
         "correct": correct,
-        "message": "Chính xác! Khối lệnh khớp đáp án." if correct else "Chưa khớp đáp án mẫu.",
+        "message": (
+            "Chính xác! Khối lệnh và số liệu khớp đáp án."
+            if correct
+            else "Chưa đúng — kiểm tra lại từng ô số / nốt đã điền."
+        ),
         "mismatches": mismatches,
         "student_scripts": len(stu),
         "expected_scripts": len(exp),

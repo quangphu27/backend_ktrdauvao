@@ -48,7 +48,7 @@ def text(content, correct_answer, aliases=None, points=1):
     }
 
 
-# 20 câu mới (khó / có bẫy) — đã bỏ 2 câu phát tin (so sánh đợi + cờ xanh sân khấu)
+# 19 câu mới (khó / có bẫy) — đã bỏ các câu phát tin (đợi / cờ xanh / điền tên khối)
 NEW_QUESTIONS = [
     # --- Vẽ hình vuông / tròn ---
     mcq(
@@ -173,17 +173,6 @@ NEW_QUESTIONS = [
             "Tin chỉ hoạt động nếu A và B cùng một trang phục",
         ],
         0,
-    ),
-    text(
-        "Điền tên khối (tiếng Việt Scratch): khối bắt đầu script khi có tin được gửi tới là «Khi nhận được …» hay «Phát tin …»? (ghi đúng một trong hai cụm ngắn)",
-        "Khi nhận được",
-        aliases=[
-            "khi nhận được",
-            "Khi nhận được tin",
-            "khi nhận được tin",
-            "Khi tôi nhận được",
-            "when I receive",
-        ],
     ),
     # --- Biến ---
     mcq(
@@ -328,9 +317,9 @@ def build_all_questions(existing_eight):
         preserved.append(raw)
 
     combined = preserved + NEW_QUESTIONS + SCRATCH_LAB_QUESTIONS
-    assert len(NEW_QUESTIONS) == 20, len(NEW_QUESTIONS)
+    assert len(NEW_QUESTIONS) == 19, len(NEW_QUESTIONS)
     assert len(SCRATCH_LAB_QUESTIONS) == 5, len(SCRATCH_LAB_QUESTIONS)
-    assert len(combined) == 33, len(combined)
+    assert len(combined) == 32, len(combined)
 
     questions = sanitize_questions(combined)
     for i, q in enumerate(questions):
@@ -357,7 +346,7 @@ def main():
         questions = build_all_questions(eight)
 
         description = (
-            "Kiểm tra giữa khóa Scratch — 28 câu TN/TL + 5 bài Scratch làm trực tiếp trên web "
+            "Kiểm tra giữa khóa Scratch — 27 câu TN/TL + 5 bài Scratch làm trực tiếp trên web "
             "(tròn, vuông, mèo bắt chuột, tô màu, piano) có Kiểm tra đáp án. Thời gian 60 phút."
         )
         now = datetime.utcnow()

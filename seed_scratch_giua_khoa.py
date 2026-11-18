@@ -1,4 +1,4 @@
-"""Cập nhật «Bài kiểm tra Scratch giữa khóa»: giữ 8 câu cũ + thêm 22 câu (tổng 30).
+"""Cập nhật «Bài kiểm tra Scratch giữa khóa»: giữ 8 câu cũ + thêm 21 câu TN/TL (+ 5 lab).
 
 Mix TN + TL · khó · một số câu có bẫy (hướng Scratch, đặt/thay đổi biến, phát tin…).
 Slug cố định: scratch-giua-khoa
@@ -48,7 +48,7 @@ def text(content, correct_answer, aliases=None, points=1):
     }
 
 
-# 22 câu mới (khó / có bẫy)
+# 21 câu mới (khó / có bẫy) — đã bỏ câu so sánh «phát tin» vs «phát tin … và đợi»
 NEW_QUESTIONS = [
     # --- Vẽ hình vuông / tròn ---
     mcq(
@@ -164,17 +164,6 @@ NEW_QUESTIONS = [
         aliases=["90°", "90 độ", "hướng 90"],
     ),
     # --- Phát tin ---
-    mcq(
-        "Khác biệt quan trọng giữa «phát tin …» và «phát tin … và đợi» là gì?",
-        [
-            "«… và đợi» chờ các script «khi nhận được tin» chạy xong rồi mới làm tiếp",
-            "«phát tin» không gửi được tin cho nhân vật khác",
-            "Hai khối hoàn toàn giống nhau",
-            "«… và đợi» chỉ gửi tin một lần duy nhất trong cả dự án",
-        ],
-        0,
-        explanation="Bẫy phổ biến: nghĩ phát tin / phát tin và đợi như nhau → race condition / thứ tự sai.",
-    ),
     mcq(
         "Nhân vật A phát tin «nổ». Nhân vật B có script «Khi nhận được tin nổ → ẩn». Điều nào đúng?",
         [
@@ -349,9 +338,9 @@ def build_all_questions(existing_eight):
         preserved.append(raw)
 
     combined = preserved + NEW_QUESTIONS + SCRATCH_LAB_QUESTIONS
-    assert len(NEW_QUESTIONS) == 22, len(NEW_QUESTIONS)
+    assert len(NEW_QUESTIONS) == 21, len(NEW_QUESTIONS)
     assert len(SCRATCH_LAB_QUESTIONS) == 5, len(SCRATCH_LAB_QUESTIONS)
-    assert len(combined) == 35, len(combined)
+    assert len(combined) == 34, len(combined)
 
     questions = sanitize_questions(combined)
     for i, q in enumerate(questions):
@@ -378,7 +367,7 @@ def main():
         questions = build_all_questions(eight)
 
         description = (
-            "Kiểm tra giữa khóa Scratch — 30 câu TN/TL + 5 bài Scratch làm trực tiếp trên web "
+            "Kiểm tra giữa khóa Scratch — 29 câu TN/TL + 5 bài Scratch làm trực tiếp trên web "
             "(tròn, vuông, mèo bắt chuột, tô màu, piano) có Kiểm tra đáp án. Thời gian 60 phút."
         )
         now = datetime.utcnow()

@@ -1,4 +1,17 @@
-"""5 bài Scratch lab — đề + đáp án mẫu (cây khối)."""
+"""5 bài Scratch lab — đề + đáp án mẫu (cây khối).
+
+Starter = khối đã ghi sẵn (xáo thứ tự, ô số để trống) để học sinh sắp xếp + điền số.
+"""
+
+
+def _blk(op, **fields):
+    """Khối starter (client sẽ gán id)."""
+    item = {"op": op}
+    item.update(fields)
+    if op in ("repeat", "forever") and "body" not in item:
+        item["body"] = []
+    return item
+
 
 LABS = [
     {
@@ -7,15 +20,12 @@ LABS = [
         "order": 1,
         "points": 2,
         "prompt": (
-            "Vẽ hình tròn bán kính 100:\n"
-            "• Đặt bút xuống\n"
-            "• Lặp lại 360 lần: di chuyển (2 × 3.14 × 100 / 360) bước, xoay phải 1 độ\n"
-            "Gợi ý: có thể viết biểu thức 2*3.14*100/360 trong ô di chuyển."
+            "Vẽ hình tròn bán kính 100 trên sân khấu.\n"
+            "Sắp xếp các khối đã cho và điền số / biểu thức cho đúng."
         ),
         "hints": [
-            "Nhớ khối Đặt bút xuống trước khi di chuyển",
-            "Lặp 360 lần, mỗi lần xoay đúng 1 độ",
-            "Quãng mỗi bước = chu vi / 360 = 2*3.14*100/360",
+            "Nhớ đặt bút xuống trước khi vẽ",
+            "Chu vi hình tròn = 2 × 3.14 × bán kính",
         ],
         "palette": ["when_flag", "pen_clear", "pen_down", "repeat", "move", "turn_right", "goto_xy"],
         "starter": {
@@ -23,7 +33,17 @@ LABS = [
             "sprites": [
                 {
                     "name": "Mèo",
-                    "scripts": [{"hat": "when_flag", "body": []}],
+                    "scripts": [
+                        {
+                            "hat": "when_flag",
+                            "body": [
+                                _blk("move", steps=""),
+                                _blk("repeat", times="", body=[]),
+                                _blk("pen_down"),
+                                _blk("turn_right", degrees=""),
+                            ],
+                        }
+                    ],
                 }
             ],
         },
@@ -58,18 +78,32 @@ LABS = [
         "order": 2,
         "points": 2,
         "prompt": (
-            "Vẽ hình vuông cạnh 100 bước:\n"
-            "• Đặt bút xuống\n"
-            "• Lặp 4 lần: di chuyển 100 bước, xoay phải 90 độ"
+            "Vẽ hình vuông cạnh 100 bước.\n"
+            "Sắp xếp các khối đã cho và điền số cho đúng."
         ),
         "hints": [
-            "Hình vuông có 4 cạnh → lặp 4 lần",
-            "Góc ngoài mỗi đỉnh = 90 độ",
+            "Hình vuông có 4 cạnh",
+            "Góc ngoài mỗi đỉnh bằng nhau",
         ],
         "palette": ["when_flag", "pen_clear", "pen_down", "repeat", "move", "turn_right", "goto_xy"],
         "starter": {
             "version": 1,
-            "sprites": [{"name": "Mèo", "scripts": [{"hat": "when_flag", "body": []}]}],
+            "sprites": [
+                {
+                    "name": "Mèo",
+                    "scripts": [
+                        {
+                            "hat": "when_flag",
+                            "body": [
+                                _blk("turn_right", degrees=""),
+                                _blk("pen_down"),
+                                _blk("move", steps=""),
+                                _blk("repeat", times="", body=[]),
+                            ],
+                        }
+                    ],
+                }
+            ],
         },
         "solution": {
             "version": 1,
@@ -102,14 +136,13 @@ LABS = [
         "order": 3,
         "points": 3,
         "prompt": (
-            "Hai nhân vật:\n"
-            "• Chuột: lặp lại mãi → đi tới con trỏ chuột\n"
-            "• Mèo: lặp lại mãi → hướng về con trỏ chuột, di chuyển 3 bước\n"
-            "(Dùng đúng các khối trong bảng chọn.)"
+            "Hai nhân vật Chuột và Mèo: chuột bám theo con trỏ; "
+            "mèo đuổi theo (hướng về con trỏ rồi tiến lại).\n"
+            "Sắp xếp khối đã cho cho từng nhân vật."
         ),
         "hints": [
-            "Chuột bám theo con trỏ",
-            "Mèo vừa quay hướng vừa tiến lại gần",
+            "Mỗi nhân vật có script riêng",
+            "Dùng «lặp lại mãi» để chạy liên tục",
         ],
         "palette": [
             "when_flag",
@@ -122,8 +155,33 @@ LABS = [
         "starter": {
             "version": 1,
             "sprites": [
-                {"name": "Chuột", "role": "mouse", "scripts": [{"hat": "when_flag", "body": []}]},
-                {"name": "Mèo", "role": "cat", "scripts": [{"hat": "when_flag", "body": []}]},
+                {
+                    "name": "Chuột",
+                    "role": "mouse",
+                    "scripts": [
+                        {
+                            "hat": "when_flag",
+                            "body": [
+                                _blk("goto_mouse"),
+                                _blk("forever", body=[]),
+                            ],
+                        }
+                    ],
+                },
+                {
+                    "name": "Mèo",
+                    "role": "cat",
+                    "scripts": [
+                        {
+                            "hat": "when_flag",
+                            "body": [
+                                _blk("move", steps=""),
+                                _blk("forever", body=[]),
+                                _blk("point_mouse"),
+                            ],
+                        }
+                    ],
+                },
             ],
         },
         "solution": {
@@ -169,15 +227,12 @@ LABS = [
         "order": 4,
         "points": 2,
         "prompt": (
-            "Tô màu hình tròn bán kính ~100:\n"
-            "• Đặt màu bút (ví dụ đỏ)\n"
-            "• Đặt cỡ bút 20\n"
-            "• Đặt bút xuống\n"
-            "• Lặp 360 lần: di chuyển 2*3.14*100/360 bước, xoay phải 1 độ"
+            "Tô màu một hình tròn (bán kính khoảng 100) bằng bút dày màu đỏ.\n"
+            "Sắp xếp các khối đã cho và điền số / biểu thức cho đúng."
         ),
         "hints": [
             "Đặt màu và cỡ bút trước khi vẽ",
-            "Cỡ bút lớn giúp nét tròn trông như được tô",
+            "Cỡ bút lớn giúp nét trông như được tô",
         ],
         "palette": [
             "when_flag",
@@ -191,7 +246,24 @@ LABS = [
         ],
         "starter": {
             "version": 1,
-            "sprites": [{"name": "Mèo", "scripts": [{"hat": "when_flag", "body": []}]}],
+            "sprites": [
+                {
+                    "name": "Mèo",
+                    "scripts": [
+                        {
+                            "hat": "when_flag",
+                            "body": [
+                                _blk("move", steps=""),
+                                _blk("pen_size", size=""),
+                                _blk("repeat", times="", body=[]),
+                                _blk("pen_color", color=""),
+                                _blk("turn_right", degrees=""),
+                                _blk("pen_down"),
+                            ],
+                        }
+                    ],
+                }
+            ],
         },
         "solution": {
             "version": 1,
@@ -226,16 +298,12 @@ LABS = [
         "order": 5,
         "points": 3,
         "prompt": (
-            "Tạo đàn piano 5 phím:\n"
-            "• Khi nhấn phím 1 → phát nốt C\n"
-            "• Khi nhấn phím 2 → phát nốt D\n"
-            "• Khi nhấn phím 3 → phát nốt E\n"
-            "• Khi nhấn phím 4 → phát nốt F\n"
-            "• Khi nhấn phím 5 → phát nốt G"
+            "Tạo đàn piano 5 phím (1–5).\n"
+            "Với mỗi phím: sắp xếp / điền nốt sao cho đúng thứ tự âm thanh."
         ),
         "hints": [
-            "Mỗi phím = một script «Khi nhấn phím …»",
-            "Dùng khối Phát nốt với tên C, D, E, F, G",
+            "Mỗi phím một script «Khi nhấn phím …»",
+            "Nốt lần lượt theo thang C D E F G",
         ],
         "palette": ["when_key", "play_note"],
         "starter": {
@@ -244,11 +312,11 @@ LABS = [
                 {
                     "name": "Piano",
                     "scripts": [
-                        {"hat": "when_key", "key": "1", "body": []},
-                        {"hat": "when_key", "key": "2", "body": []},
-                        {"hat": "when_key", "key": "3", "body": []},
-                        {"hat": "when_key", "key": "4", "body": []},
-                        {"hat": "when_key", "key": "5", "body": []},
+                        {"hat": "when_key", "key": "1", "body": [_blk("play_note", sound="")]},
+                        {"hat": "when_key", "key": "2", "body": [_blk("play_note", sound="")]},
+                        {"hat": "when_key", "key": "3", "body": [_blk("play_note", sound="")]},
+                        {"hat": "when_key", "key": "4", "body": [_blk("play_note", sound="")]},
+                        {"hat": "when_key", "key": "5", "body": [_blk("play_note", sound="")]},
                     ],
                 }
             ],

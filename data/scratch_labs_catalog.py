@@ -21,13 +21,14 @@ LABS = [
         "points": 2,
         "prompt": (
             "Vẽ hình tròn bán kính 100 trên sân khấu.\n"
-            "Sắp xếp các khối đã cho và điền số / biểu thức cho đúng."
+            "Sắp xếp / điền số cho đúng. Có khối thừa — hãy xóa khối không cần."
         ),
         "hints": [
             "Nhớ đặt bút xuống trước khi vẽ",
             "Chu vi hình tròn = 2 × 3.14 × bán kính",
+            "Xóa khối gây nhiễu không dùng tới",
         ],
-        "palette": ["when_flag", "pen_clear", "pen_down", "repeat", "move", "turn_right", "goto_xy"],
+        "palette": ["when_flag", "pen_clear", "pen_down", "repeat", "move", "turn_right", "turn_left", "goto_xy"],
         "starter": {
             "version": 1,
             "sprites": [
@@ -38,8 +39,10 @@ LABS = [
                             "hat": "when_flag",
                             "body": [
                                 _blk("move", steps=""),
+                                _blk("goto_xy", x="", y=""),
                                 _blk("repeat", times="", body=[]),
                                 _blk("pen_down"),
+                                _blk("turn_left", degrees=""),
                                 _blk("turn_right", degrees=""),
                             ],
                         }
@@ -79,13 +82,14 @@ LABS = [
         "points": 2,
         "prompt": (
             "Vẽ hình vuông cạnh 100 bước.\n"
-            "Sắp xếp các khối đã cho và điền số cho đúng."
+            "Sắp xếp / điền số cho đúng. Có khối thừa — hãy xóa khối không cần."
         ),
         "hints": [
             "Hình vuông có 4 cạnh",
             "Góc ngoài mỗi đỉnh bằng nhau",
+            "Xóa khối gây nhiễu không dùng tới",
         ],
-        "palette": ["when_flag", "pen_clear", "pen_down", "repeat", "move", "turn_right", "goto_xy"],
+        "palette": ["when_flag", "pen_clear", "pen_down", "repeat", "move", "turn_right", "turn_left", "goto_xy"],
         "starter": {
             "version": 1,
             "sprites": [
@@ -96,8 +100,10 @@ LABS = [
                             "hat": "when_flag",
                             "body": [
                                 _blk("turn_right", degrees=""),
+                                _blk("goto_xy", x="", y=""),
                                 _blk("pen_down"),
                                 _blk("move", steps=""),
+                                _blk("turn_left", degrees=""),
                                 _blk("repeat", times="", body=[]),
                             ],
                         }
@@ -138,11 +144,12 @@ LABS = [
         "prompt": (
             "Hai nhân vật Chuột và Mèo: chuột bám theo con trỏ; "
             "mèo đuổi theo (hướng về con trỏ rồi tiến lại).\n"
-            "Sắp xếp khối đã cho cho từng nhân vật."
+            "Sắp xếp khối đã cho. Có khối thừa — hãy xóa khối không cần."
         ),
         "hints": [
             "Mỗi nhân vật có script riêng",
             "Dùng «lặp lại mãi» để chạy liên tục",
+            "Xóa khối gây nhiễu không dùng tới",
         ],
         "palette": [
             "when_flag",
@@ -150,6 +157,8 @@ LABS = [
             "goto_mouse",
             "point_mouse",
             "move",
+            "turn_right",
+            "goto_xy",
         ],
         "multi_sprite": True,
         "starter": {
@@ -163,6 +172,7 @@ LABS = [
                             "hat": "when_flag",
                             "body": [
                                 _blk("goto_mouse"),
+                                _blk("turn_right", degrees=""),
                                 _blk("forever", body=[]),
                             ],
                         }
@@ -176,6 +186,7 @@ LABS = [
                             "hat": "when_flag",
                             "body": [
                                 _blk("move", steps=""),
+                                _blk("goto_xy", x="", y=""),
                                 _blk("forever", body=[]),
                                 _blk("point_mouse"),
                             ],
@@ -228,11 +239,12 @@ LABS = [
         "points": 2,
         "prompt": (
             "Tô màu một hình tròn (bán kính khoảng 100) bằng bút dày màu đỏ.\n"
-            "Sắp xếp các khối đã cho và điền số / biểu thức cho đúng."
+            "Sắp xếp / điền số cho đúng. Có khối thừa — hãy xóa khối không cần."
         ),
         "hints": [
             "Đặt màu và cỡ bút trước khi vẽ",
             "Cỡ bút lớn giúp nét trông như được tô",
+            "Xóa khối gây nhiễu không dùng tới",
         ],
         "palette": [
             "when_flag",
@@ -243,6 +255,8 @@ LABS = [
             "repeat",
             "move",
             "turn_right",
+            "turn_left",
+            "goto_xy",
         ],
         "starter": {
             "version": 1,
@@ -254,9 +268,11 @@ LABS = [
                             "hat": "when_flag",
                             "body": [
                                 _blk("move", steps=""),
+                                _blk("goto_xy", x="", y=""),
                                 _blk("pen_size", size=""),
                                 _blk("repeat", times="", body=[]),
                                 _blk("pen_color", color=""),
+                                _blk("turn_left", degrees=""),
                                 _blk("turn_right", degrees=""),
                                 _blk("pen_down"),
                             ],
@@ -299,23 +315,45 @@ LABS = [
         "points": 3,
         "prompt": (
             "Tạo đàn piano 5 phím (1–5).\n"
-            "Với mỗi phím: sắp xếp / điền nốt sao cho đúng thứ tự âm thanh."
+            "Điền nốt cho đúng. Có khối thừa — hãy xóa khối không cần."
         ),
         "hints": [
             "Mỗi phím một script «Khi nhấn phím …»",
             "Nốt lần lượt theo thang C D E F G",
+            "Xóa khối gây nhiễu không dùng tới",
         ],
-        "palette": ["when_key", "play_note"],
+        "palette": ["when_key", "play_note", "play_sound", "say"],
         "starter": {
             "version": 1,
             "sprites": [
                 {
                     "name": "Piano",
                     "scripts": [
-                        {"hat": "when_key", "key": "1", "body": [_blk("play_note", sound="")]},
-                        {"hat": "when_key", "key": "2", "body": [_blk("play_note", sound="")]},
+                        {
+                            "hat": "when_key",
+                            "key": "1",
+                            "body": [
+                                _blk("say", text=""),
+                                _blk("play_note", sound=""),
+                            ],
+                        },
+                        {
+                            "hat": "when_key",
+                            "key": "2",
+                            "body": [
+                                _blk("play_sound", sound=""),
+                                _blk("play_note", sound=""),
+                            ],
+                        },
                         {"hat": "when_key", "key": "3", "body": [_blk("play_note", sound="")]},
-                        {"hat": "when_key", "key": "4", "body": [_blk("play_note", sound="")]},
+                        {
+                            "hat": "when_key",
+                            "key": "4",
+                            "body": [
+                                _blk("play_note", sound=""),
+                                _blk("say", text=""),
+                            ],
+                        },
                         {"hat": "when_key", "key": "5", "body": [_blk("play_note", sound="")]},
                     ],
                 }

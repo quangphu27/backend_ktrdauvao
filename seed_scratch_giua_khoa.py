@@ -244,27 +244,6 @@ SCRATCH_LAB_QUESTIONS = [
         "points": 2,
         "hint": None,
     },
-    {
-        "type": "scratch_blocks",
-        "lab_slug": "meo-bat-chuot",
-        "content": "Làm trên web: Mèo bắt chuột.",
-        "points": 3,
-        "hint": None,
-    },
-    {
-        "type": "scratch_blocks",
-        "lab_slug": "to-mau-hinh-tron",
-        "content": "Làm trên web: Tô màu hình tròn.",
-        "points": 2,
-        "hint": None,
-    },
-    {
-        "type": "scratch_blocks",
-        "lab_slug": "dan-piano",
-        "content": "Làm trên web: Đàn piano 5 phím.",
-        "points": 3,
-        "hint": None,
-    },
 ]
 
 
@@ -287,8 +266,8 @@ def build_all_questions(existing_eight):
 
     combined = preserved + NEW_QUESTIONS + SCRATCH_LAB_QUESTIONS
     assert len(NEW_QUESTIONS) == 17, len(NEW_QUESTIONS)
-    assert len(SCRATCH_LAB_QUESTIONS) == 5, len(SCRATCH_LAB_QUESTIONS)
-    assert len(combined) == 30, len(combined)
+    assert len(SCRATCH_LAB_QUESTIONS) == 2, len(SCRATCH_LAB_QUESTIONS)
+    assert len(combined) == 27, len(combined)
 
     questions = sanitize_questions(combined)
     for i, q in enumerate(questions):
@@ -315,8 +294,8 @@ def main():
         questions = build_all_questions(eight)
 
         description = (
-            "Kiểm tra giữa khóa Scratch — 25 câu TN/TL + 5 bài Scratch làm trực tiếp trên web "
-            "(tròn, vuông, mèo bắt chuột, tô màu, piano) có Kiểm tra đáp án. Thời gian 60 phút."
+            "Kiểm tra giữa khóa Scratch — 25 câu TN/TL + 2 bài Scratch làm trực tiếp trên web "
+            "(vẽ hình tròn, vẽ hình vuông). Thời gian 60 phút."
         )
         now = datetime.utcnow()
         col("quizzes").update_one(

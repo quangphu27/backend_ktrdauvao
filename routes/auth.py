@@ -75,7 +75,11 @@ def login():
         }), 403
 
     user = user_to_dict(doc)
-    token = create_access_token(identity=user["id"], additional_claims={"role": user["role"]})
+    # flask-jwt-extended 4.x: identity phải là string
+    token = create_access_token(
+        identity=str(user["id"]),
+        additional_claims={"role": user.get("role") or "student"},
+    )
     return jsonify({"token": token, "user": user})
 
 

@@ -23,7 +23,7 @@ def _norm_text(s):
 def sanitize_question(raw, index=0):
     """Chuẩn hóa 1 câu hỏi từ payload admin."""
     qtype = (raw.get("type") or "mcq").lower()
-    if qtype not in ("mcq", "text", "python_code", "scratch_file"):
+    if qtype not in ("mcq", "text", "python_code", "scratch_file", "scratch_blocks"):
         qtype = "mcq"
 
     q = {
@@ -87,6 +87,18 @@ def sanitize_question(raw, index=0):
             for a in accept
             if a
         ] or [".sb3"]
+    elif qtype == "scratch_blocks":
+        # Làm Scratch trên web — chấm khớp khối với lab mẫu
+        lab_slug = (raw.get("lab_slug") or "").strip()
+        if not lab_slug:
+            raise ValueError(f"Câu {index + 1}: scratch_blocks cần lab_slug")
+        q["options"] = []
+        q["correct_answer"] = None
+        q["answer_aliases"] = []
+        q["starter_code"] = ""
+        q["allow_run"] = True
+        q["lab_slug"] = lab_slug
+        q["hint"] = (raw.get("hint") or "").strip() or None
     else:
         # python_code — tự luận viết code; có testcases thì chấm tự động
         starter = raw.get("starter_code")
@@ -193,6 +205,18 @@ def question_for_student(q, include_explanation=False):
     elif item["type"] == "scratch_file":
         item["hint"] = q.get("hint")
         item["accept_extensions"] = q.get("accept_extensions") or [".sb3"]
+    elif item["type"] == "scratch_blocks":
+        item["lab_slug"] = q.get("lab_slug")
+        item["hint"] = q.get("hint")
+        # Gắn meta lab (không gồm solution) để UI editor
+        try:
+            from data.scratch_labs_catalog import get_lab, public_lab
+
+            lab = get_lab(q.get("lab_slug") or "")
+            if lab:
+                item["lab"] = public_lab(lab)
+        except Exception:
+            item["lab"] = None
     return item
 
 
@@ -304,6 +328,53 @@ def grade_attempt(quiz, answers_map, code_grades=None):
                 "is_correct": is_correct,
                 "answered": answered,
                 "needs_manual_review": needs_manual_review,
+            })
+            continue
+
+        if qtype == "scratch_blocks":
+            from data.scratch_labs_catalog import get_lab
+            from services.scratch_grade_service import grade_project
+
+            project = None
+            if isinstance(student_ans, dict):
+                if "sprites" in student_ans or "scripts" in student_ans:
+                    project = student_ans
+                else:
+                    project = student_ans.get("project")
+            answered = bool(project)
+            lab = get_lab(q.get("lab_slug") or "")
+            if answered and lab:
+                result = grade_project(project, lab.get("solution"))
+                is_correct = bool(result.get("correct"))
+                correct_text = result.get("message") or ""
+                chosen_text = "Đã nộp dự án Scratch (khối lệnh)"
+                if is_correct:
+                    points_awarded = points
+                    earned += points
+                else:
+                    points_awarded = 0
+                    mismatches = result.get("mismatches") or []
+                    if mismatches:
+                        correct_text = correct_text + " | " + "; ".join(mismatches[:3])
+            else:
+                is_correct = False
+                points_awarded = 0
+                chosen_text = ""
+                correct_text = "Cần hoàn thành khối lệnh trên editor"
+            details.append({
+                "question_id": qid,
+                "type": qtype,
+                "content": q.get("content"),
+                "image_url": q.get("image_url"),
+                "points": points,
+                "points_awarded": points_awarded,
+                "student_answer": chosen_text,
+                "correct_answer": correct_text,
+                "is_correct": is_correct,
+                "answered": answered,
+                "needs_manual_review": False,
+                "lab_slug": q.get("lab_slug"),
+                "project": project if answered else None,
             })
             continue
 

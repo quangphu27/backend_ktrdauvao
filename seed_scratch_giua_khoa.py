@@ -48,7 +48,7 @@ def text(content, correct_answer, aliases=None, points=1):
     }
 
 
-# 18 câu mới (khó / có bẫy)
+# 17 câu mới (khó / có bẫy)
 NEW_QUESTIONS = [
     # --- Vẽ hình vuông / tròn ---
     mcq(
@@ -203,17 +203,6 @@ NEW_QUESTIONS = [
     ),
     # --- Khối / điều khiển / bẫy ---
     mcq(
-        "Trong «lặp lại 10»: nếu điều kiện sai ngay từ đầu thì thân vòng lặp chạy bao nhiêu lần?",
-        [
-            "0 lần — «nếu» không chạy thân khi điều kiện sai; vòng vẫn đếm đủ 10 lần kiểm tra",
-            "10 lần bất kể điều kiện",
-            "1 lần rồi dừng",
-            "Vô hạn đến khi bấm dừng",
-        ],
-        0,
-        explanation="Bẫy: nhầm «lặp lại 10» với «lặp lại mãi» hoặc nghĩ «nếu» vẫn chạy 1 lần.",
-    ),
-    mcq(
         "Khối nào DỪNG toàn bộ chương trình (mọi nhân vật), không chỉ script hiện tại?",
         [
             "Dừng tất cả",
@@ -306,9 +295,9 @@ def build_all_questions(existing_eight):
         preserved.append(raw)
 
     combined = preserved + NEW_QUESTIONS + SCRATCH_LAB_QUESTIONS
-    assert len(NEW_QUESTIONS) == 18, len(NEW_QUESTIONS)
+    assert len(NEW_QUESTIONS) == 17, len(NEW_QUESTIONS)
     assert len(SCRATCH_LAB_QUESTIONS) == 5, len(SCRATCH_LAB_QUESTIONS)
-    assert len(combined) == 31, len(combined)
+    assert len(combined) == 30, len(combined)
 
     questions = sanitize_questions(combined)
     for i, q in enumerate(questions):
@@ -335,7 +324,7 @@ def main():
         questions = build_all_questions(eight)
 
         description = (
-            "Kiểm tra giữa khóa Scratch — 26 câu TN/TL + 5 bài Scratch làm trực tiếp trên web "
+            "Kiểm tra giữa khóa Scratch — 25 câu TN/TL + 5 bài Scratch làm trực tiếp trên web "
             "(tròn, vuông, mèo bắt chuột, tô màu, piano) có Kiểm tra đáp án. Thời gian 60 phút."
         )
         now = datetime.utcnow()

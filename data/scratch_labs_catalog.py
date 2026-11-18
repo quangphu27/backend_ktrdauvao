@@ -1,6 +1,6 @@
 """5 bài Scratch lab — đề + đáp án mẫu (cây khối).
 
-Starter = khối đã ghi sẵn (xáo thứ tự, ô số để trống) để học sinh sắp xếp + điền số.
+Starter = đúng thứ tự khối, ô số/trường để trống để học sinh điền.
 """
 
 
@@ -19,16 +19,9 @@ LABS = [
         "title": "Vẽ hình tròn",
         "order": 1,
         "points": 2,
-        "prompt": (
-            "Vẽ hình tròn bán kính 100 trên sân khấu.\n"
-            "Sắp xếp / điền số cho đúng. Có khối thừa — hãy xóa khối không cần."
-        ),
-        "hints": [
-            "Nhớ đặt bút xuống trước khi vẽ",
-            "Chu vi hình tròn = 2 × 3.14 × bán kính",
-            "Xóa khối gây nhiễu không dùng tới",
-        ],
-        "palette": ["when_flag", "pen_clear", "pen_down", "repeat", "move", "turn_right", "turn_left", "goto_xy"],
+        "prompt": "Vẽ hình tròn bán kính 100.",
+        "hints": [],
+        "palette": [],
         "starter": {
             "version": 1,
             "sprites": [
@@ -38,12 +31,15 @@ LABS = [
                         {
                             "hat": "when_flag",
                             "body": [
-                                _blk("move", steps=""),
-                                _blk("goto_xy", x="", y=""),
-                                _blk("repeat", times="", body=[]),
                                 _blk("pen_down"),
-                                _blk("turn_left", degrees=""),
-                                _blk("turn_right", degrees=""),
+                                _blk(
+                                    "repeat",
+                                    times="",
+                                    body=[
+                                        _blk("move", steps=""),
+                                        _blk("turn_right", degrees=""),
+                                    ],
+                                ),
                             ],
                         }
                     ],
@@ -80,16 +76,9 @@ LABS = [
         "title": "Vẽ hình vuông",
         "order": 2,
         "points": 2,
-        "prompt": (
-            "Vẽ hình vuông cạnh 100 bước.\n"
-            "Sắp xếp / điền số cho đúng. Có khối thừa — hãy xóa khối không cần."
-        ),
-        "hints": [
-            "Hình vuông có 4 cạnh",
-            "Góc ngoài mỗi đỉnh bằng nhau",
-            "Xóa khối gây nhiễu không dùng tới",
-        ],
-        "palette": ["when_flag", "pen_clear", "pen_down", "repeat", "move", "turn_right", "turn_left", "goto_xy"],
+        "prompt": "Vẽ hình vuông cạnh 100 bước.",
+        "hints": [],
+        "palette": [],
         "starter": {
             "version": 1,
             "sprites": [
@@ -99,12 +88,15 @@ LABS = [
                         {
                             "hat": "when_flag",
                             "body": [
-                                _blk("turn_right", degrees=""),
-                                _blk("goto_xy", x="", y=""),
                                 _blk("pen_down"),
-                                _blk("move", steps=""),
-                                _blk("turn_left", degrees=""),
-                                _blk("repeat", times="", body=[]),
+                                _blk(
+                                    "repeat",
+                                    times="",
+                                    body=[
+                                        _blk("move", steps=""),
+                                        _blk("turn_right", degrees=""),
+                                    ],
+                                ),
                             ],
                         }
                     ],
@@ -141,25 +133,9 @@ LABS = [
         "title": "Mèo bắt chuột",
         "order": 3,
         "points": 3,
-        "prompt": (
-            "Hai nhân vật Chuột và Mèo: chuột bám theo con trỏ; "
-            "mèo đuổi theo (hướng về con trỏ rồi tiến lại).\n"
-            "Sắp xếp khối đã cho. Có khối thừa — hãy xóa khối không cần."
-        ),
-        "hints": [
-            "Mỗi nhân vật có script riêng",
-            "Dùng «lặp lại mãi» để chạy liên tục",
-            "Xóa khối gây nhiễu không dùng tới",
-        ],
-        "palette": [
-            "when_flag",
-            "forever",
-            "goto_mouse",
-            "point_mouse",
-            "move",
-            "turn_right",
-            "goto_xy",
-        ],
+        "prompt": "Mèo bắt chuột — hai nhân vật Chuột và Mèo.",
+        "hints": [],
+        "palette": [],
         "multi_sprite": True,
         "starter": {
             "version": 1,
@@ -171,9 +147,7 @@ LABS = [
                         {
                             "hat": "when_flag",
                             "body": [
-                                _blk("goto_mouse"),
-                                _blk("turn_right", degrees=""),
-                                _blk("forever", body=[]),
+                                _blk("forever", body=[_blk("goto_mouse")]),
                             ],
                         }
                     ],
@@ -185,10 +159,13 @@ LABS = [
                         {
                             "hat": "when_flag",
                             "body": [
-                                _blk("move", steps=""),
-                                _blk("goto_xy", x="", y=""),
-                                _blk("forever", body=[]),
-                                _blk("point_mouse"),
+                                _blk(
+                                    "forever",
+                                    body=[
+                                        _blk("point_mouse"),
+                                        _blk("move", steps=""),
+                                    ],
+                                ),
                             ],
                         }
                     ],
@@ -237,27 +214,9 @@ LABS = [
         "title": "Tô màu hình tròn",
         "order": 4,
         "points": 2,
-        "prompt": (
-            "Tô màu một hình tròn (bán kính khoảng 100) bằng bút dày màu đỏ.\n"
-            "Sắp xếp / điền số cho đúng. Có khối thừa — hãy xóa khối không cần."
-        ),
-        "hints": [
-            "Đặt màu và cỡ bút trước khi vẽ",
-            "Cỡ bút lớn giúp nét trông như được tô",
-            "Xóa khối gây nhiễu không dùng tới",
-        ],
-        "palette": [
-            "when_flag",
-            "pen_clear",
-            "pen_color",
-            "pen_size",
-            "pen_down",
-            "repeat",
-            "move",
-            "turn_right",
-            "turn_left",
-            "goto_xy",
-        ],
+        "prompt": "Tô màu hình tròn bằng bút dày màu đỏ.",
+        "hints": [],
+        "palette": [],
         "starter": {
             "version": 1,
             "sprites": [
@@ -267,14 +226,17 @@ LABS = [
                         {
                             "hat": "when_flag",
                             "body": [
-                                _blk("move", steps=""),
-                                _blk("goto_xy", x="", y=""),
-                                _blk("pen_size", size=""),
-                                _blk("repeat", times="", body=[]),
                                 _blk("pen_color", color=""),
-                                _blk("turn_left", degrees=""),
-                                _blk("turn_right", degrees=""),
+                                _blk("pen_size", size=""),
                                 _blk("pen_down"),
+                                _blk(
+                                    "repeat",
+                                    times="",
+                                    body=[
+                                        _blk("move", steps=""),
+                                        _blk("turn_right", degrees=""),
+                                    ],
+                                ),
                             ],
                         }
                     ],
@@ -313,47 +275,19 @@ LABS = [
         "title": "Đàn piano",
         "order": 5,
         "points": 3,
-        "prompt": (
-            "Tạo đàn piano 5 phím (1–5).\n"
-            "Điền nốt cho đúng. Có khối thừa — hãy xóa khối không cần."
-        ),
-        "hints": [
-            "Mỗi phím một script «Khi nhấn phím …»",
-            "Nốt lần lượt theo thang C D E F G",
-            "Xóa khối gây nhiễu không dùng tới",
-        ],
-        "palette": ["when_key", "play_note", "play_sound", "say"],
+        "prompt": "Đàn piano 5 phím (1–5).",
+        "hints": [],
+        "palette": [],
         "starter": {
             "version": 1,
             "sprites": [
                 {
                     "name": "Piano",
                     "scripts": [
-                        {
-                            "hat": "when_key",
-                            "key": "1",
-                            "body": [
-                                _blk("say", text=""),
-                                _blk("play_note", sound=""),
-                            ],
-                        },
-                        {
-                            "hat": "when_key",
-                            "key": "2",
-                            "body": [
-                                _blk("play_sound", sound=""),
-                                _blk("play_note", sound=""),
-                            ],
-                        },
+                        {"hat": "when_key", "key": "1", "body": [_blk("play_note", sound="")]},
+                        {"hat": "when_key", "key": "2", "body": [_blk("play_note", sound="")]},
                         {"hat": "when_key", "key": "3", "body": [_blk("play_note", sound="")]},
-                        {
-                            "hat": "when_key",
-                            "key": "4",
-                            "body": [
-                                _blk("play_note", sound=""),
-                                _blk("say", text=""),
-                            ],
-                        },
+                        {"hat": "when_key", "key": "4", "body": [_blk("play_note", sound="")]},
                         {"hat": "when_key", "key": "5", "body": [_blk("play_note", sound="")]},
                     ],
                 }

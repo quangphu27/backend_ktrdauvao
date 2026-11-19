@@ -12,6 +12,7 @@ from werkzeug.utils import secure_filename
 from database import col, parse_oid, oid_str
 from services.cloudinary_service import upload_image_file, upload_submission_file
 from services.quiz_service import (
+    _scratch_midterm_scores,
     attempt_to_dict,
     generate_quiz_slug,
     grade_attempt,
@@ -83,6 +84,31 @@ def submit_quiz(slug):
         return jsonify({"message": "Vui lòng nhập họ tên và lớp"}), 400
 
     graded = grade_attempt(doc, answers, code_grades=code_grades)
+    # Ép thang Scratch giữa khóa: 25×3.6 + Scratch 10 (tránh điểm cũ 3đ/câu)
+    if doc.get("slug") == "scratch-giua-khoa" or "Scratch giữa khóa" in (doc.get("title") or ""):
+        mid = _scratch_midterm_scores(graded["details"])
+        graded = {
+            **graded,
+            "earned": mid["earned"],
+            "max_score": mid["max_score"],
+            "score": mid["score"],
+        }
+        # Đồng bộ points trên từng câu trong details
+        for d in graded["details"]:
+            if d.get("type") == "scratch_blocks":
+                d["points"] = 10.0
+                d["points_awarded"] = 10.0 if d.get("is_correct") else 0.0
+            elif d.get("type") in ("mcq", "text"):
+                d["points"] = 3.6
+                d["points_awarded"] = 3.6 if d.get("is_correct") else 0.0
+        tn_correct = mid["tn_correct"]
+        tn_total = mid["tn_total"]
+        scoring_note = mid["scoring_note"]
+    else:
+        tn_correct = None
+        tn_total = None
+        scoring_note = None
+
     attempt = {
         "quiz_id": str(doc["_id"]),
         "quiz_title": doc.get("title"),
@@ -99,6 +125,10 @@ def submit_quiz(slug):
         "duration_seconds": duration,
         "submitted_at": datetime.utcnow(),
     }
+    if tn_correct is not None:
+        attempt["tn_correct"] = tn_correct
+        attempt["tn_total"] = tn_total
+        attempt["scoring_note"] = scoring_note
     result = col("quiz_attempts").insert_one(attempt)
     attempt["_id"] = result.inserted_id
     return jsonify({

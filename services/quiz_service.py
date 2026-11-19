@@ -531,17 +531,78 @@ def recompute_attempt_score(details):
     return earned, max_score, score, pending
 
 
+def _scratch_midterm_scores(details, doc=None):
+    """Chuẩn hóa thang Scratch giữa khóa: 25×3.6=90 + Scratch 10."""
+    details = details or []
+    tn = [d for d in details if d.get("type") in ("mcq", "text")]
+    scratch_blocks = next((d for d in details if d.get("type") == "scratch_blocks"), None)
+    tn_correct = sum(1 for d in tn if d.get("is_correct") is True)
+    tn_total = len(tn) or 25
+    mc_earned = round(tn_correct * 3.6, 2)
+    mc_max = 90.0
+    mc_score_100 = round(tn_correct / tn_total * 100, 1) if tn_total else 0.0
+    sc_ok = bool(scratch_blocks and scratch_blocks.get("is_correct") is True)
+    sc_awarded = 10.0 if sc_ok else 0.0
+    earned = round(mc_earned + sc_awarded, 2)
+    return {
+        "score": earned,
+        "earned": earned,
+        "max_score": 100.0,
+        "mc_score_100": mc_score_100,
+        "mc_earned": mc_earned,
+        "mc_max": mc_max,
+        "tn_correct": tn_correct,
+        "tn_total": tn_total,
+        "scoring_note": "Thang 100: 25 TN/TL × 3.6 = 90 + câu 26 Scratch 10",
+        "scratch_blocks": scratch_blocks,
+        "scratch_blocks_correct": sc_ok if scratch_blocks else None,
+        "scratch_blocks_awarded": sc_awarded if scratch_blocks else None,
+        "scratch_blocks_points": 10.0 if scratch_blocks else None,
+    }
+
+
 def attempt_to_dict(doc, include_details=False):
     if not doc:
         return None
     submitted = doc.get("submitted_at")
     details = doc.get("details") or []
-    mc = [d for d in details if d.get("type") == "mcq"]
-    mc_earned = round(sum(_as_points(d.get("points_awarded"), 0) for d in mc), 2)
-    mc_max = round(sum(_as_points(d.get("points"), 0) for d in mc), 2)
-    mc_score_100 = round(mc_earned / mc_max * 100, 1) if mc_max else None
+    is_scratch_midterm = (
+        doc.get("quiz_slug") == "scratch-giua-khoa"
+        or "Scratch giữa khóa" in (doc.get("quiz_title") or "")
+    )
     scratch = next((d for d in details if d.get("type") == "scratch_file"), None)
     scratch_url = ((scratch or {}).get("file") or {}).get("url") or ""
+
+    if is_scratch_midterm:
+        mid = _scratch_midterm_scores(details, doc)
+        score = mid["score"]
+        earned = mid["earned"]
+        max_score = mid["max_score"]
+        mc_score_100 = mid["mc_score_100"]
+        mc_earned = mid["mc_earned"]
+        mc_max = mid["mc_max"]
+        tn_correct = mid["tn_correct"]
+        tn_total = mid["tn_total"]
+        scoring_note = mid["scoring_note"]
+        scratch_blocks_correct = mid["scratch_blocks_correct"]
+        scratch_blocks_awarded = mid["scratch_blocks_awarded"]
+        scratch_blocks_points = mid["scratch_blocks_points"]
+    else:
+        mc = [d for d in details if d.get("type") in ("mcq", "text")]
+        mc_earned = round(sum(_as_points(d.get("points_awarded"), 0) for d in mc), 2)
+        mc_max = round(sum(_as_points(d.get("points"), 0) for d in mc), 2)
+        mc_score_100 = round(mc_earned / mc_max * 100, 1) if mc_max else None
+        score = doc.get("score")
+        earned = doc.get("earned")
+        max_score = doc.get("max_score")
+        tn_correct = doc.get("tn_correct")
+        tn_total = doc.get("tn_total")
+        scoring_note = doc.get("scoring_note")
+        scratch_blocks = next((d for d in details if d.get("type") == "scratch_blocks"), None)
+        scratch_blocks_correct = (scratch_blocks or {}).get("is_correct")
+        scratch_blocks_awarded = (scratch_blocks or {}).get("points_awarded")
+        scratch_blocks_points = (scratch_blocks or {}).get("points")
+
     data = {
         "id": str(doc["_id"]),
         "quiz_id": doc.get("quiz_id"),
@@ -550,16 +611,22 @@ def attempt_to_dict(doc, include_details=False):
         "student_name": doc.get("student_name"),
         "student_grade": doc.get("student_grade"),
         "student_phone": doc.get("student_phone") or "",
-        "score": doc.get("score"),
-        "earned": doc.get("earned"),
-        "max_score": doc.get("max_score"),
+        "score": score,
+        "earned": earned,
+        "max_score": max_score,
         "pending_manual": doc.get("pending_manual") or 0,
         "duration_seconds": doc.get("duration_seconds") or 0,
         "submitted_at": submitted.isoformat() + "Z" if isinstance(submitted, datetime) else submitted,
         "mc_score_100": mc_score_100,
         "mc_earned": mc_earned,
         "mc_max": mc_max,
+        "tn_correct": tn_correct,
+        "tn_total": tn_total,
+        "scoring_note": scoring_note,
         "scratch_file_url": scratch_url,
+        "scratch_blocks_correct": scratch_blocks_correct,
+        "scratch_blocks_awarded": scratch_blocks_awarded,
+        "scratch_blocks_points": scratch_blocks_points,
     }
     if include_details:
         data["details"] = details

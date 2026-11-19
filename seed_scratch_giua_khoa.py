@@ -232,13 +232,6 @@ def load_existing_eight(quiz_doc):
 SCRATCH_LAB_QUESTIONS = [
     {
         "type": "scratch_blocks",
-        "lab_slug": "ve-hinh-tron",
-        "content": "Làm trên web: Vẽ hình tròn bán kính 100.",
-        "points": 2,
-        "hint": None,
-    },
-    {
-        "type": "scratch_blocks",
         "lab_slug": "ve-hinh-vuong",
         "content": "Làm trên web: Vẽ hình vuông cạnh 100.",
         "points": 2,
@@ -266,8 +259,8 @@ def build_all_questions(existing_eight):
 
     combined = preserved + NEW_QUESTIONS + SCRATCH_LAB_QUESTIONS
     assert len(NEW_QUESTIONS) == 17, len(NEW_QUESTIONS)
-    assert len(SCRATCH_LAB_QUESTIONS) == 2, len(SCRATCH_LAB_QUESTIONS)
-    assert len(combined) == 27, len(combined)
+    assert len(SCRATCH_LAB_QUESTIONS) == 1, len(SCRATCH_LAB_QUESTIONS)
+    assert len(combined) == 26, len(combined)
 
     questions = sanitize_questions(combined)
     for i, q in enumerate(questions):
@@ -294,8 +287,8 @@ def main():
         questions = build_all_questions(eight)
 
         description = (
-            "Kiểm tra giữa khóa Scratch — 25 câu TN/TL + 2 bài Scratch làm trực tiếp trên web "
-            "(vẽ hình tròn, vẽ hình vuông). Thời gian 60 phút."
+            "Kiểm tra giữa khóa Scratch — 25 câu TN/TL + 1 bài Scratch làm trực tiếp trên web "
+            "(vẽ hình vuông). Thời gian 60 phút."
         )
         now = datetime.utcnow()
         col("quizzes").update_one(

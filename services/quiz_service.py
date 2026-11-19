@@ -20,6 +20,16 @@ def _norm_text(s):
     return re.sub(r"\s+", " ", (s or "").strip().lower())
 
 
+def _as_points(raw, default=1):
+    try:
+        v = float(raw if raw is not None else default)
+    except (TypeError, ValueError):
+        v = float(default)
+    if v <= 0:
+        v = float(default)
+    return round(v, 2)
+
+
 def sanitize_question(raw, index=0):
     """Chuẩn hóa 1 câu hỏi từ payload admin."""
     qtype = (raw.get("type") or "mcq").lower()
@@ -31,7 +41,7 @@ def sanitize_question(raw, index=0):
         "type": qtype,
         "content": (raw.get("content") or "").strip(),
         "image_url": (raw.get("image_url") or "").strip() or None,
-        "points": max(1, int(raw.get("points") or 1)),
+        "points": _as_points(raw.get("points"), 1),
         "order_num": int(raw.get("order_num") if raw.get("order_num") is not None else index),
     }
     if not q["content"] and not q["image_url"]:
@@ -242,7 +252,7 @@ def quiz_to_dict(doc, include_answers=False, include_explanations=False):
         "duration_minutes": int(doc.get("duration_minutes") or 0),
         "is_active": bool(doc.get("is_active", True)),
         "question_count": len(questions),
-        "max_score": sum(int(q.get("points") or 1) for q in questions),
+        "max_score": round(sum(_as_points(q.get("points"), 1) for q in questions), 2),
         "questions": qs,
         "created_at": created.isoformat() + "Z" if isinstance(created, datetime) else created,
         "updated_at": updated.isoformat() + "Z" if isinstance(updated, datetime) else updated,
@@ -292,7 +302,7 @@ def grade_attempt(quiz, answers_map, code_grades=None):
     pending_manual = 0
 
     for q in quiz.get("questions") or []:
-        points = int(q.get("points") or 1)
+        points = _as_points(q.get("points"), 1)
         max_score += points
         qid = str(q["id"])
         student_ans = answers_map.get(qid)
@@ -401,7 +411,7 @@ def grade_attempt(quiz, answers_map, code_grades=None):
                     earned += points
                 elif answered and total > 0 and passed > 0:
                     is_correct = False
-                    points_awarded = int(round(points * passed / total))
+                    points_awarded = round(points * passed / total, 2)
                     earned += points_awarded
                 else:
                     is_correct = False if answered else False
@@ -487,6 +497,8 @@ def grade_attempt(quiz, answers_map, code_grades=None):
             "needs_manual_review": False,
         })
 
+    earned = round(earned, 2)
+    max_score = round(max_score, 2)
     score = round((earned / max_score) * 100, 1) if max_score else 0
     return {
         "earned": earned,
@@ -499,20 +511,22 @@ def grade_attempt(quiz, answers_map, code_grades=None):
 
 def recompute_attempt_score(details):
     """Tính lại điểm sau khi giáo viên chấm code."""
-    earned = 0
-    max_score = 0
+    earned = 0.0
+    max_score = 0.0
     pending = 0
     for d in details or []:
-        pts = int(d.get("points") or 0)
+        pts = _as_points(d.get("points"), 0)
         max_score += pts
         if d.get("needs_manual_review") and d.get("is_correct") is None:
             pending += 1 if d.get("answered") else 0
-            awarded = int(d.get("points_awarded") or 0)
+            awarded = _as_points(d.get("points_awarded"), 0)
         else:
-            awarded = int(d.get("points_awarded") or 0)
+            awarded = _as_points(d.get("points_awarded"), 0)
             if d.get("is_correct") is True and awarded == 0:
                 awarded = pts
         earned += awarded
+    earned = round(earned, 2)
+    max_score = round(max_score, 2)
     score = round((earned / max_score) * 100, 1) if max_score else 0
     return earned, max_score, score, pending
 
@@ -523,8 +537,8 @@ def attempt_to_dict(doc, include_details=False):
     submitted = doc.get("submitted_at")
     details = doc.get("details") or []
     mc = [d for d in details if d.get("type") == "mcq"]
-    mc_earned = sum(int(d.get("points_awarded") or 0) for d in mc)
-    mc_max = sum(int(d.get("points") or 0) for d in mc)
+    mc_earned = round(sum(_as_points(d.get("points_awarded"), 0) for d in mc), 2)
+    mc_max = round(sum(_as_points(d.get("points"), 0) for d in mc), 2)
     mc_score_100 = round(mc_earned / mc_max * 100, 1) if mc_max else None
     scratch = next((d for d in details if d.get("type") == "scratch_file"), None)
     scratch_url = ((scratch or {}).get("file") or {}).get("url") or ""

@@ -234,7 +234,7 @@ SCRATCH_LAB_QUESTIONS = [
         "type": "scratch_blocks",
         "lab_slug": "ve-hinh-vuong",
         "content": "Làm trên web: Vẽ hình vuông cạnh 100.",
-        "points": 2,
+        "points": 10,
         "hint": None,
     },
 ]
@@ -263,9 +263,14 @@ def build_all_questions(existing_eight):
     assert len(combined) == 26, len(combined)
 
     questions = sanitize_questions(combined)
+    # Thang 100: 25 câu TN/TL = 90đ (3.6/câu), 1 câu Scratch = 10đ
     for i, q in enumerate(questions):
         q["order_num"] = i
         q["content"] = f"Câu {i + 1}: {_strip_cau(q['content'])}"
+        if q.get("type") == "scratch_blocks":
+            q["points"] = 10
+        else:
+            q["points"] = 3.6
     return questions
 
 
@@ -287,8 +292,8 @@ def main():
         questions = build_all_questions(eight)
 
         description = (
-            "Kiểm tra giữa khóa Scratch — 25 câu TN/TL + 1 bài Scratch làm trực tiếp trên web "
-            "(vẽ hình vuông). Thời gian 60 phút."
+            "Kiểm tra giữa khóa Scratch — 25 câu TN/TL (90 điểm) + 1 bài Scratch web "
+            "vẽ hình vuông (10 điểm). Thang điểm 100. Thời gian 60 phút."
         )
         now = datetime.utcnow()
         col("quizzes").update_one(

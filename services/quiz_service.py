@@ -536,12 +536,13 @@ def attempt_to_dict(doc, include_details=False):
         return None
     submitted = doc.get("submitted_at")
     details = doc.get("details") or []
-    mc = [d for d in details if d.get("type") == "mcq"]
+    mc = [d for d in details if d.get("type") in ("mcq", "text")]
     mc_earned = round(sum(_as_points(d.get("points_awarded"), 0) for d in mc), 2)
     mc_max = round(sum(_as_points(d.get("points"), 0) for d in mc), 2)
     mc_score_100 = round(mc_earned / mc_max * 100, 1) if mc_max else None
     scratch = next((d for d in details if d.get("type") == "scratch_file"), None)
     scratch_url = ((scratch or {}).get("file") or {}).get("url") or ""
+    scratch_blocks = next((d for d in details if d.get("type") == "scratch_blocks"), None)
     data = {
         "id": str(doc["_id"]),
         "quiz_id": doc.get("quiz_id"),
@@ -559,7 +560,13 @@ def attempt_to_dict(doc, include_details=False):
         "mc_score_100": mc_score_100,
         "mc_earned": mc_earned,
         "mc_max": mc_max,
+        "tn_correct": doc.get("tn_correct"),
+        "tn_total": doc.get("tn_total"),
+        "scoring_note": doc.get("scoring_note"),
         "scratch_file_url": scratch_url,
+        "scratch_blocks_correct": (scratch_blocks or {}).get("is_correct"),
+        "scratch_blocks_awarded": (scratch_blocks or {}).get("points_awarded"),
+        "scratch_blocks_points": (scratch_blocks or {}).get("points"),
     }
     if include_details:
         data["details"] = details

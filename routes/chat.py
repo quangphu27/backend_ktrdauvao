@@ -174,10 +174,11 @@ def chat_updates():
 
     since_raw = (request.args.get("since") or "").strip()
     thread_id = (request.args.get("thread_id") or "").strip() or None
+    # Mặc định wait=0 (short-poll): Render/gunicorn 1 worker sẽ bị treo nếu long-poll
     wait = request.args.get("wait", type=int)
     if wait is None:
-        wait = 20
-    wait = max(0, min(wait, 25))
+        wait = 0
+    wait = max(0, min(wait, 15))
 
     if since_raw:
         try:

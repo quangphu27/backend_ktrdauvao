@@ -72,7 +72,7 @@ def create_app():
 
     @app.route("/api/health")
     def health():
-        return {"status": "ok"}
+        return {"status": "ok", "chat": True, "build": "chat-v1"}
 
     @app.route("/api/health/db")
     def health_db():

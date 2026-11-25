@@ -10,7 +10,7 @@ from .games import games_bp
 from .reports import reports_bp
 from .live import live_bp
 from .scratch_labs import scratch_labs_bp
-from .scratch_arena import scratch_arena_bp
+from .scratch_arena_api import scratch_arena_bp
 from .iq300 import iq300_bp
 from .chat import chat_bp
 

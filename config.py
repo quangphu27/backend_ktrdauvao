@@ -9,10 +9,8 @@ class Config:
     SECRET_KEY = os.getenv("SECRET_KEY", "dev-secret-key")
     JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY", "jwt-dev-secret-key")
     JWT_ACCESS_TOKEN_EXPIRES = timedelta(days=7)
-    MONGODB_URI = os.getenv(
-        "MONGODB_URI",
-        "mongodb+srv://quangphu:<db_password>@cluster0.6ln3p.mongodb.net/?appName=Cluster0",
-    )
+    # Không đặt URI placeholder ở đây — Render phải có MONGODB_URI (Environment hoặc .env).
+    MONGODB_URI = (os.getenv("MONGODB_URI") or "").strip()
     MONGODB_DB_NAME = os.getenv("MONGODB_DB_NAME", "kiemtradauvao")
     FRONTEND_URL = os.getenv("FRONTEND_URL", "https://kiemtradauvao.vercel.app").rstrip("/")
     UPLOAD_FOLDER = os.path.join(os.path.dirname(__file__), "uploads")

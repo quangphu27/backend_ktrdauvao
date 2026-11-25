@@ -8,3 +8,14 @@ services:
     envVars:
       - key: PYTHON_VERSION
         value: "3.11.9"
+      # Nên set trên Dashboard (không commit secret). Fallback hiện tại: file .env trong repo.
+      - key: MONGODB_URI
+        sync: false
+      - key: MONGODB_DB_NAME
+        value: kiemtradauvao
+      - key: JWT_SECRET_KEY
+        sync: false
+      - key: SECRET_KEY
+        sync: false
+      - key: FRONTEND_URL
+        value: https://kiemtradauvao.vercel.app

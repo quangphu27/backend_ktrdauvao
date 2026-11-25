@@ -17,6 +17,9 @@ from routes import (
     reports_bp,
     live_bp,
     scratch_labs_bp,
+    scratch_arena_bp,
+    iq300_bp,
+    chat_bp,
 )
 
 
@@ -59,6 +62,9 @@ def create_app():
     app.register_blueprint(reports_bp)
     app.register_blueprint(live_bp)
     app.register_blueprint(scratch_labs_bp)
+    app.register_blueprint(scratch_arena_bp)
+    app.register_blueprint(iq300_bp)
+    app.register_blueprint(chat_bp)
 
     @app.route("/uploads/<path:filename>")
     def uploaded_file(filename):

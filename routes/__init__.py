@@ -10,6 +10,9 @@ from .games import games_bp
 from .reports import reports_bp
 from .live import live_bp
 from .scratch_labs import scratch_labs_bp
+from .scratch_arena import scratch_arena_bp
+from .iq300 import iq300_bp
+from .chat import chat_bp
 
 __all__ = [
     "auth_bp",
@@ -24,4 +27,7 @@ __all__ = [
     "reports_bp",
     "live_bp",
     "scratch_labs_bp",
+    "scratch_arena_bp",
+    "iq300_bp",
+    "chat_bp",
 ]

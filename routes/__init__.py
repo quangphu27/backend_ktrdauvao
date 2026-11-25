@@ -12,6 +12,7 @@ from .live import live_bp
 from .scratch_labs import scratch_labs_bp
 from .scratch_arena import scratch_arena_bp
 from .iq300 import iq300_bp
+from .chat import chat_bp
 
 __all__ = [
     "auth_bp",
@@ -28,4 +29,5 @@ __all__ = [
     "scratch_labs_bp",
     "scratch_arena_bp",
     "iq300_bp",
+    "chat_bp",
 ]
